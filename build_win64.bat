@@ -8,24 +8,32 @@ if not defined DevEnvDir (
 REM -GR- turns off c++ runtime type info
 REM -EHa turns off c++ exception handling
 REM -Oi turn on compiler intrinsics
-set CommonCompilerFlags=-nologo -fp:fast -FC -GR- -EHa- -Oi -WX -W4 -wd4100 -wd4189 -DPLATFORM_WIN32=1 
-set DebugCompilerFlags=-DDEBUG_BUILD=1 -Od -Z7
-set ReleaseCompilerFlags=-DDEBUG_BUILD=0 -Ox
-set CommonLinkerFlags=-incremental:no -opt:ref user32.lib Gdi32.lib
+set CommonCompilerFlags=-nologo -MTd -fp:fast -FC -GR- -EHa- -Oi -WX -W4 -wd4100 -wd4189
+set CommonLinkerFlags=-incremental:no -opt:ref 
+set PlatformLinkerLibs=user32.lib Gdi32.lib
 
-REM Debug build
+set DebugCompilerFlags=-Od -Z7
+set DebugCompilerDefinitions=-DDEBUG_BUILD=1 -DPLATFORM_WIN32=1 
+
+set ReleaseCompilerFlags=-Ox
+set ReleaseCompilerDefinitions=-DDEBUG_BUILD=0 -DPLATFORM_WIN32=1 
+
+set SharedLib=-LD
+
+REM 64-bit Debug build
 if not exist .\bin\debug\x64 mkdir .\bin\debug\x64
 pushd .\bin\debug\x64
+del *.pdb > NUL 2> NUL
 REM compile the game specific code as a DLL
-cl %DebugCompilerFlags% %CommonCompilerFlags% -Fegame -Fmgame.map ..\..\..\src\game\fn_game.cpp /LD /link %CommonLinkerFlags%
+cl %DebugCompilerDefinitions% %DebugCompilerFlags% %CommonCompilerFlags% -Fegame -Fmgame.map ..\..\..\src\game\fn_game.cpp %SharedLib% /link -PDB:game_%RANDOM%.pdb %CommonLinkerFlags%
 REM compile the platform specific code as an EXE
-cl %DebugCompilerFlags% %CommonCompilerFlags% -FeWin64Game -FmWin64Game.map ..\..\..\src\platform\win32\win32_main.cpp /link %CommonLinkerFlags%
+cl %DebugCompilerDefinitions% %DebugCompilerFlags% %CommonCompilerFlags% -FeWin64Game -FmWin64Game.map ..\..\..\src\platform\win32\win32_main.cpp /link %CommonLinkerFlags% %PlatformLinkerLibs%
 popd
 
-REM Release build
+REM 64-bit Release build
 REM if not exist .\bin\release\x64 mkdir .\bin\release\x64
 REM pushd .\bin\release\x64
-REM cl %ReleaseCompilerFlags% %CommonCompilerFlags% -FeGame -FmGame.map ..\..\..\src\platform\win32\win32_main.cpp /LD /link %CommonLinkerFlags%
-REM cl %ReleaseCompilerFlags% %CommonCompilerFlags% -FeWin64Game -FmWin64Game.map ..\..\..\src\platform\win32\win32_main.cpp /link %CommonLinkerFlags%
+REM cl %ReleaseCompilerDefinitions% %ReleaseCompilerFlags% %CommonCompilerFlags% -FeGame ..\..\..\src\platform\win32\win32_main.cpp %SharedLib% /link %CommonLinkerFlags%
+REM cl %ReleaseCompilerDefinitions% %ReleaseCompilerFlags% %CommonCompilerFlags% -FeWin64Game ..\..\..\src\platform\win32\win32_main.cpp /link %CommonLinkerFlags% %PlatformLinkerLibs%
 REM popd
 

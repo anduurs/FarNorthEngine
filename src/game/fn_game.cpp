@@ -39,7 +39,7 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
 
     game_state* gameState = (game_state*)memory->PermanentStorage;
 
-    gameState->X = 1280/2 - 300;
+    gameState->X = 1280/2;
     gameState->Y = 720/2;
 
     const char* fileName = __FILE__;
@@ -75,7 +75,7 @@ extern "C" __declspec(dllexport) FN_GAME_RENDER(fn_game_render)
     game_state* gameState = (game_state*)memory->PermanentStorage;
 
     renderer_clear_screen(buffer, 0x00, 0x00, 0x00);
-    renderer_draw_quad(buffer, gameState->X, gameState->Y, 50, 50, 0xFF, 0x00, 0x00);
+    renderer_draw_quad(buffer, gameState->X+150, gameState->Y-100, 50, 50, 0xFF, 0x00, 0x00);
 }
 
 extern "C" __declspec(dllexport) FN_GAME_OUTPUT_SOUND(fn_game_output_sound)
@@ -101,8 +101,3 @@ extern "C" __declspec(dllexport) FN_GAME_OUTPUT_SOUND(fn_game_output_sound)
         gameState->tSine += 2.0f * Pi32 * 1.0f / (float)wavePeriod;
     }
 }
-
-#if PLATFORM_WIN32
-#include "windows.h"
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved){ return TRUE; }
-#endif

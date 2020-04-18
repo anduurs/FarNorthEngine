@@ -189,8 +189,11 @@ internal win32_game_code win32_load_game_code()
 {
     win32_game_code result = {};
 
-    CopyFile("game.dll", "game_temp.dll", FALSE);
-    result.GameCodeDLL = LoadLibraryA("game_temp.dll");
+    const char* sourceDLLName = "game.dll";
+    const char* tempDLLName = "game_temp.dll";
+
+    CopyFile(sourceDLLName, tempDLLName, FALSE);
+    result.GameCodeDLL = LoadLibraryA(tempDLLName);
 
     if (result.GameCodeDLL)
     {
