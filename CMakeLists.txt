@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.8)
 
 project(FarNorthEngine)
 
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
+set(CMAKE_BUILD_TYPE Debug)
 set(FAR_NORTH_ENGINE_DIR ${CMAKE_CURRENT_LIST_DIR}/)
 set(SourceDir ${FAR_NORTH_ENGINE_DIR}src/)
 set(DataDir ${FAR_NORTH_ENGINE_DIR}res/)
@@ -34,7 +34,6 @@ add_custom_command(TARGET GameLib WORKING_DIRECTORY ${BuildDir}
 add_custom_command(TARGET GameLib WORKING_DIRECTORY ${BuildDir}
 	POST_BUILD 
 		COMMAND ren ARGS game.pdb game_%random%.pdb 
-		COMMAND del ARGS lock.tmp
 )
 
 add_executable(Game WIN32 ${SourceDir}platform/win32/win32_main.cpp)

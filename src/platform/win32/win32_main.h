@@ -10,6 +10,7 @@
 struct win32_game_code
 {
     HMODULE GameCodeDLL;
+    FILETIME LastDLLWriteTime;
 
     bool IsValid;
 

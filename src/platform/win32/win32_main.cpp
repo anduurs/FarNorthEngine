@@ -164,7 +164,7 @@ internal void win32_process_messages()
                     }
                     else if(vkCode == VK_ESCAPE)
                     {
-
+                        GlobalApplicationRunning = false;
                     }
                 }
 
@@ -185,13 +185,27 @@ internal void win32_process_messages()
     }
 }
 
-internal win32_game_code win32_load_game_code()
+inline FILETIME win32_get_last_write_time(const char* fileName)
+{
+    FILETIME lastWriteTime = {};
+
+    WIN32_FIND_DATA findData;
+    HANDLE fileHandle = FindFirstFileA(fileName, &findData);
+
+    if (fileHandle != INVALID_HANDLE_VALUE)
+    {
+        lastWriteTime = findData.ftLastWriteTime;
+        FindClose(fileHandle);
+    }
+
+    return lastWriteTime;
+}
+
+internal win32_game_code win32_load_game_code(const char* sourceDLLName, const char* tempDLLName, FILETIME lastDLLWriteTime)
 {
     win32_game_code result = {};
 
-    const char* sourceDLLName = "game.dll";
-    const char* tempDLLName = "game_temp.dll";
-
+    result.LastDLLWriteTime = lastDLLWriteTime;
     CopyFile(sourceDLLName, tempDLLName, FALSE);
     result.GameCodeDLL = LoadLibraryA(tempDLLName);
 
@@ -305,15 +319,55 @@ FN_PLATFORM_DEBUG_LOG(PlatformDebugLog)
     OutputDebugStringA(message);
 }
 
-int32 CALLBACK WinMain(
-    _In_ HINSTANCE hInstance,
-    _In_opt_ HINSTANCE hPrevInstance,
-    _In_ LPSTR commandLine,
-    _In_ int32 showCode)
+internal void concat_strings(
+    size_t sourceACount, char* sourceA, 
+    size_t sourceBCount, char* sourceB, 
+    size_t destCount, char* dest)
 {
+    for (int i = 0; i < sourceACount; i++)
+    {
+        *dest++ = *sourceA++;
+    }
+
+    for (int i = 0; i < sourceBCount; i++)
+    {
+        *dest++ = *sourceB++;
+    }
+
+    *dest++ = 0;
+}
+
+int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR commandLine, int showCode)
+{
+    char exeFileName[MAX_PATH];
+
+    DWORD sizeOfFileName = GetModuleFileNameA(0, exeFileName, sizeof(exeFileName));
+    char* onePastLastSlash = exeFileName;
+    for (char* scan = exeFileName; *scan; scan++)
+    {
+        if (*scan == '\\')
+        {
+            onePastLastSlash = scan + 1;
+        }
+    }
+
+    char sourceGameCodeDLLFileName[] = "game.dll";
+    char sourceGameCodeDLLFullPath[MAX_PATH];
+
+    concat_strings(onePastLastSlash - exeFileName, exeFileName, 
+        sizeof(sourceGameCodeDLLFileName) - 1, sourceGameCodeDLLFileName, 
+        sizeof(sourceGameCodeDLLFullPath), sourceGameCodeDLLFullPath);
+
+    char tempGameCodeDLLFileName[] = "game_temp.dll";
+    char tempGameCodeDLLFullPath[MAX_PATH];
+
+    concat_strings(onePastLastSlash - exeFileName, exeFileName,
+        sizeof(tempGameCodeDLLFileName) - 1, tempGameCodeDLLFileName,
+        sizeof(tempGameCodeDLLFullPath), tempGameCodeDLLFullPath);
+
     WNDCLASSEX windowClass = {};
     windowClass.cbSize = sizeof(WNDCLASSEX);
-    windowClass.style = CS_HREDRAW | CS_VREDRAW;
+    windowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
     windowClass.lpfnWndProc = win32_window_callback;
     windowClass.hInstance = hInstance;
     windowClass.lpszClassName = "FarNorthWindowClass";
@@ -389,18 +443,18 @@ int32 CALLBACK WinMain(
 
             uint64 lastCycleCount = __rdtsc();
 
-            win32_game_code game = win32_load_game_code();
+            FILETIME DLLWriteTime = win32_get_last_write_time(sourceGameCodeDLLFullPath);
+            win32_game_code game = win32_load_game_code(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath, DLLWriteTime);
             game.Init(&gameMemory);
-
-            uint32 gameCodeLoadCounter = 0;
             
             while (GlobalApplicationRunning)
             {
-                if (gameCodeLoadCounter++ > 120)
+                FILETIME newDLLWriteTime = win32_get_last_write_time(sourceGameCodeDLLFullPath);
+
+                if (CompareFileTime(&newDLLWriteTime, &game.LastDLLWriteTime) != 0)
                 {
                     win32_unload_game_code(&game);
-                    game = win32_load_game_code();
-                    gameCodeLoadCounter = 0;
+                    game = win32_load_game_code(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath, DLLWriteTime);
                 }
 
                 win32_process_messages();
