@@ -2,6 +2,77 @@
 #include "win32_input.cpp"
 #include "win32_audio.cpp"
 
+FN_PLATFORM_FILE_WRITE(PlatformWriteFile)
+{
+    bool result = false;
+    HANDLE fileHandle = CreateFile(fileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
+
+    if (fileHandle != INVALID_HANDLE_VALUE)
+    {
+        DWORD bytesWritten;
+        if (WriteFile(fileHandle, data, size, &bytesWritten, 0))
+        {
+            result = bytesWritten == size;
+        }
+
+        CloseHandle(fileHandle);
+    }
+
+    return result;
+}
+
+FN_PLATFORM_FILE_FREE(PlatformFreeFile)
+{
+    if (data)
+    {
+        VirtualFree(data, 0, MEM_RELEASE);
+    }
+}
+
+FN_PLATFORM_FILE_READ(PlatformReadFile)
+{
+    platform_file_result result = {};
+
+    HANDLE fileHandle = CreateFile(fileName, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+
+    if (fileHandle != INVALID_HANDLE_VALUE)
+    {
+        LARGE_INTEGER fileSize;
+        if (GetFileSizeEx(fileHandle, &fileSize))
+        {
+            assert(fileSize.QuadPart <= 0xFFFFFFFF);
+
+            uint32 size = (uint32)fileSize.QuadPart;
+
+            void* fileData = VirtualAlloc(0, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
+            if (fileData)
+            {
+                DWORD bytesRead;
+                if (ReadFile(fileHandle, fileData, size, &bytesRead, 0) && size == (uint32)bytesRead)
+                {
+                    result.FileSize = size;
+                    result.Data = fileData;
+                }
+                else
+                {
+                    PlatformFreeFile(fileData);
+                    fileData = 0;
+                }
+            }
+        }
+
+        CloseHandle(fileHandle);
+    }
+
+    return result;
+}
+
+FN_PLATFORM_DEBUG_LOG(PlatformDebugLog)
+{
+    OutputDebugStringA(message);
+}
+
 internal win32_window_dimension win32_window_get_dimension(HWND window)
 {
     win32_window_dimension result;
@@ -102,7 +173,66 @@ internal LRESULT CALLBACK win32_window_callback(HWND window, UINT message, WPARA
     return result;
 }
 
-internal void win32_process_messages()
+internal void win32_begin_recording_input(win32_state* win32State, int32 inputRecordingIndex)
+{
+    win32State->InputRecordingIndex = inputRecordingIndex;
+    const char* fileName = "input_record.fni";
+    win32State->RecordingHandle = CreateFileA(fileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
+    
+    DWORD bytesToWrite = (DWORD)win32State->TotalGameMemorySize;
+    assert(bytesToWrite == win32State->TotalGameMemorySize);
+    DWORD bytesWritten;
+    WriteFile(win32State->RecordingHandle, win32State->GameMemoryBlock, bytesToWrite, &bytesWritten, 0);
+}
+
+internal void win32_end_recording_input(win32_state* win32State)
+{
+    CloseHandle(win32State->RecordingHandle);
+    win32State->InputRecordingIndex = 0;
+}
+
+internal void win32_record_input(win32_state* win32State, game_input* input)
+{
+    DWORD bytesWritten;
+    WriteFile(win32State->RecordingHandle, input, sizeof(*input), &bytesWritten, 0);
+}
+
+internal void win32_begin_play_back_input(win32_state* win32State, int32 inputPlayingIndex)
+{
+    win32State->InputPlayingIndex = inputPlayingIndex;
+
+    const char* fileName = "input_playback.fni";
+    win32State->PlaybackHandle = CreateFileA(fileName, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+    DWORD bytesToRead = (DWORD)win32State->TotalGameMemorySize;
+    assert(bytesToRead == win32State->TotalGameMemorySize);
+    DWORD bytesRead;
+    ReadFile(win32State->PlaybackHandle, win32State->GameMemoryBlock, bytesToRead, &bytesRead, 0);
+}
+
+internal void win32_end_play_back_input(win32_state* win32State)
+{
+    CloseHandle(win32State->PlaybackHandle);
+    win32State->InputPlayingIndex = 0;
+}
+
+internal void win32_play_back_input(win32_state* win32State, game_input* input)
+{
+    DWORD bytesRead = 0;
+    if (ReadFile(win32State->PlaybackHandle, input, sizeof(*input), &bytesRead, 0))
+    {
+        // there is still input
+        if (bytesRead == 0)
+        {
+            // we hit the end of the stream, go back to the beginning
+            int32 playingIndex = win32State->InputPlayingIndex;
+            win32_end_play_back_input(win32State);
+            win32_begin_play_back_input(win32State, playingIndex);
+            ReadFile(win32State->PlaybackHandle, input, sizeof(*input), &bytesRead, 0);
+        }
+    }
+}
+
+internal void win32_process_messages(win32_state* win32State, game_input* input)
 {
     MSG message;
                 
@@ -126,45 +256,24 @@ internal void win32_process_messages()
 
                 if (wasDown != isDown)
                 {
-                    if (vkCode == 'W')
-                    {
-
-                    }
-                    else if(vkCode == 'S')
-                    {
-
-                    }
-                    else if(vkCode == 'D')
-                    {
-
-                    }
-                    else if(vkCode == 'A')
-                    {
-
-                    }
-                    else if(vkCode == VK_UP)
-                    {
-
-                    }
-                    else if(vkCode == VK_DOWN)
-                    {
-
-                    }
-                    else if(vkCode == VK_RIGHT)
-                    {
-
-                    }
-                    else if(vkCode == VK_LEFT)
-                    {
-
-                    }
-                    else if(vkCode == VK_SPACE)
-                    {
-
-                    }
-                    else if(vkCode == VK_ESCAPE)
+                    if(vkCode == VK_ESCAPE)
                     {
                         GlobalApplicationRunning = false;
+                    }
+                    else if (vkCode == 'L')
+                    {
+                        if (isDown)
+                        {
+                            if (win32State->InputRecordingIndex == 0)
+                            {
+                                win32_begin_recording_input(win32State, 1);
+                            }
+                            else
+                            {
+                                win32_end_recording_input(win32State);
+                                win32_begin_play_back_input(win32State, 1);
+                            }
+                        }
                     }
                 }
 
@@ -248,77 +357,6 @@ internal void win32_unload_game_code(win32_game_code* gameCode)
     gameCode->OutputSound = fn_game_output_sound_stub;
 }
 
-FN_PLATFORM_FILE_WRITE(PlatformWriteFile)
-{
-    bool result = false;
-    HANDLE fileHandle = CreateFile(fileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
-
-    if (fileHandle != INVALID_HANDLE_VALUE)
-    {
-        DWORD bytesWritten;
-        if (WriteFile(fileHandle, data, size, &bytesWritten, 0))
-        {
-            result = bytesWritten == size;
-        }
-
-        CloseHandle(fileHandle);
-    }
-
-    return result;
-}
-
-FN_PLATFORM_FILE_FREE(PlatformFreeFile)
-{
-    if (data)
-    {
-        VirtualFree(data, 0, MEM_RELEASE);
-    }
-}
-
-FN_PLATFORM_FILE_READ(PlatformReadFile)
-{
-    file_result result = {};
-
-    HANDLE fileHandle = CreateFile(fileName, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
-
-    if (fileHandle != INVALID_HANDLE_VALUE)
-    {
-        LARGE_INTEGER fileSize;
-        if (GetFileSizeEx(fileHandle, &fileSize))
-        {
-            assert(fileSize.QuadPart <= 0xFFFFFFFF);
-
-            uint32 size = (uint32)fileSize.QuadPart;
-
-            void* fileData = VirtualAlloc(0, size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-
-            if (fileData)
-            {
-                DWORD bytesRead;
-                if (ReadFile(fileHandle, fileData, size, &bytesRead, 0) && size == (uint32)bytesRead)
-                {
-                    result.FileSize = size;
-                    result.Data = fileData;
-                }
-                else
-                {
-                    PlatformFreeFile(fileData);
-                    fileData = 0;
-                }
-            }
-        }
-
-        CloseHandle(fileHandle);
-    }
-
-    return result;
-}
-
-FN_PLATFORM_DEBUG_LOG(PlatformDebugLog)
-{
-    OutputDebugStringA(message);
-}
-
 internal void concat_strings(
     size_t sourceACount, char* sourceA, 
     size_t sourceBCount, char* sourceB, 
@@ -393,13 +431,17 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
         {
             HDC deviceContext = GetDC(window);
 
+            win32_state win32State = {};
+
             game_memory gameMemory = {};
 
             gameMemory.PermanentStorageSize = Megabytes(64);
             gameMemory.TransientStorageSize = Gigabytes((uint64)4);
 
             uint64 totalSize = gameMemory.PermanentStorageSize + gameMemory.TransientStorageSize;
-            gameMemory.PermanentStorage = VirtualAlloc(0, totalSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            win32State.TotalGameMemorySize = totalSize;
+            win32State.GameMemoryBlock = VirtualAlloc(0, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+            gameMemory.PermanentStorage = win32State.GameMemoryBlock;
             gameMemory.TransientStorage = (uint64*)gameMemory.PermanentStorage + gameMemory.PermanentStorageSize;
 
             gameMemory.PlatformWriteFile = PlatformWriteFile;
@@ -457,10 +499,20 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                     game = win32_load_game_code(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath, DLLWriteTime);
                 }
 
-                win32_process_messages();
+                win32_process_messages(&win32State, newInput);
                 win32_input_poll_gamepad(oldInput, newInput);
 
-                game.ProcessInput(newInput);
+                if (win32State.InputRecordingIndex)
+                {
+                    win32_record_input(&win32State, newInput);
+                }
+
+                if (win32State.InputPlayingIndex)
+                {
+                    win32_play_back_input(&win32State, newInput);
+                }
+
+                game.ProcessInput(&gameMemory, newInput);
 
                 game.Tick(&gameMemory);
 

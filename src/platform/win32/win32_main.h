@@ -21,6 +21,18 @@ struct win32_game_code
     game_output_sound* OutputSound;
 };
 
+struct win32_state
+{
+    uint64 TotalGameMemorySize;
+    void* GameMemoryBlock;
+
+    HANDLE RecordingHandle;
+    int32 InputRecordingIndex;
+
+    HANDLE PlaybackHandle;
+    int32 InputPlayingIndex;
+};
+
 struct win32_offscreen_buffer
 {
     BITMAPINFO Info; 
@@ -37,5 +49,5 @@ struct win32_window_dimension
     int32 Height;
 };
 
-global_variable bool GlobalApplicationRunning;
+global_variable volatile bool GlobalApplicationRunning;
 global_variable win32_offscreen_buffer GlobalBackBuffer;

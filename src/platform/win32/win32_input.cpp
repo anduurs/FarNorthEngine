@@ -25,7 +25,7 @@ internal void win32_input_process_digital_button(game_button_state* oldState, ga
 internal void win32_input_poll_gamepad(game_input* oldInput, game_input* newInput)
 {
     uint32 xinputMaxGamepadCount = XUSER_MAX_COUNT;
-    uint32 gameMaxGamepadCount = ARRAY_LENGTH(newInput->Gamepads);
+    uint32 gameMaxGamepadCount = array_length(newInput->Gamepads);
 
     if (xinputMaxGamepadCount > gameMaxGamepadCount)
     {
@@ -34,8 +34,8 @@ internal void win32_input_poll_gamepad(game_input* oldInput, game_input* newInpu
 
     for (DWORD gamepadIndex = 0; gamepadIndex < xinputMaxGamepadCount; gamepadIndex++)
     {
-        game_gamepad_input* oldGamepad = &oldInput->Gamepads[gamepadIndex];
-        game_gamepad_input* newGamepad = &newInput->Gamepads[gamepadIndex];
+        game_controller_input* oldGamepad = &oldInput->Gamepads[gamepadIndex];
+        game_controller_input* newGamepad = &newInput->Gamepads[gamepadIndex];
 
         XINPUT_STATE gamepadState;
         if (XInputGetState(gamepadIndex, &gamepadState) == ERROR_SUCCESS)

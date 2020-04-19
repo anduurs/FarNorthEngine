@@ -12,7 +12,7 @@
 #define local_persist static
 #define global_variable static  
 
-#define ARRAY_LENGTH(a) (sizeof(a)/sizeof(a[0]))
+#define array_length(a) (sizeof(a)/sizeof(a[0]))
 
 #if DEBUG_BUILD
 #define assert(Expression) if (!(Expression)) {*(int*)0 = 0;}

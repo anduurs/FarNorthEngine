@@ -4,7 +4,7 @@
 #include "../math/fn_math.h"
 
 // Services that the platform layer provides to the game
-struct file_result
+struct platform_file_result
 {
     uint32 FileSize;
     void* Data;
@@ -18,7 +18,7 @@ typedef FN_PLATFORM_FILE_FREE(platform_file_free);
 #define FN_PLATFORM_FILE_WRITE(name) bool name(const char* fileName, uint32 size, void* data)
 typedef FN_PLATFORM_FILE_WRITE(platform_file_write);
 
-#define FN_PLATFORM_FILE_READ(name) file_result name(const char* fileName)
+#define FN_PLATFORM_FILE_READ(name) platform_file_result name(const char* fileName)
 typedef FN_PLATFORM_FILE_READ(platform_file_read);
 
 #define FN_PLATFORM_DEBUG_LOG(name) void name(const char* message)
@@ -62,7 +62,7 @@ struct game_button_state
     bool EndedDown;
 };
 
-struct game_gamepad_input
+struct game_controller_input
 {
     bool IsAnalog;
     
@@ -86,15 +86,25 @@ struct game_gamepad_input
     game_button_state RightShoulder;
 };
 
+#define FN_KEY_A 65
+
+struct game_keyboard_input
+{
+    uint32 KeyCode;
+    bool Pressed;
+    bool Released;
+};
+
 struct game_input
 {
-    game_gamepad_input Gamepads[4];
+    game_controller_input Gamepads[4];
+    game_keyboard_input Keyboard;
 };
 
 struct game_state
 {
-    int32 X;
-    int32 Y;
+    int32 PlayerX;
+    int32 PlayerY;
     float tSine;
 };
 
@@ -103,7 +113,7 @@ struct game_state
 typedef FN_GAME_INIT(game_init);
 FN_GAME_INIT(fn_game_init_stub){}
 
-#define FN_GAME_PROCESS_INPUT(name) void name(game_input* input)
+#define FN_GAME_PROCESS_INPUT(name) void name(game_memory* memory, game_input* input)
 typedef FN_GAME_PROCESS_INPUT(game_process_input);
 FN_GAME_PROCESS_INPUT(fn_game_process_input_stub){}
 
