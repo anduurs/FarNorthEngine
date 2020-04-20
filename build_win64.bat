@@ -21,8 +21,8 @@ set ReleaseCompilerDefinitions=-DDEBUG_BUILD=0 -DPLATFORM_WIN32=1
 set SharedLib=-LD
 
 REM 64-bit Debug build
-if not exist .\bin\debug\x64 mkdir .\bin\debug\x64
-pushd .\bin\debug\x64
+if not exist .\build\debug\x64 mkdir .\build\debug\x64
+pushd .\build\debug\x64
 del *.pdb > NUL 2> NUL
 REM compile the game specific code as a DLL
 cl %DebugCompilerDefinitions% %DebugCompilerFlags% %CommonCompilerFlags% -Fegame -Fmgame.map ..\..\..\src\game\fn_game.cpp %SharedLib% /link -PDB:game_%RANDOM%.pdb %CommonLinkerFlags%
@@ -31,8 +31,8 @@ cl %DebugCompilerDefinitions% %DebugCompilerFlags% %CommonCompilerFlags% -FeWin6
 popd
 
 REM 64-bit Release build
-REM if not exist .\bin\release\x64 mkdir .\bin\release\x64
-REM pushd .\bin\release\x64
+REM if not exist .\build\release\x64 mkdir .\build\release\x64
+REM pushd .\build\release\x64
 REM cl %ReleaseCompilerDefinitions% %ReleaseCompilerFlags% %CommonCompilerFlags% -FeGame ..\..\..\src\platform\win32\win32_main.cpp %SharedLib% /link %CommonLinkerFlags%
 REM cl %ReleaseCompilerDefinitions% %ReleaseCompilerFlags% %CommonCompilerFlags% -FeWin64Game ..\..\..\src\platform\win32\win32_main.cpp /link %CommonLinkerFlags% %PlatformLinkerLibs%
 REM popd

@@ -1,5 +1,6 @@
 # Folders to ignore
 bin/
+build/
 out/
 .vscode/
 .vs/

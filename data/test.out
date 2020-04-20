@@ -62,6 +62,13 @@ extern "C" __declspec(dllexport) FN_GAME_PROCESS_INPUT(fn_game_process_input)
     {
 
     }
+
+    game_keyboard_input* keyboard = &input->Keyboard;
+
+    if (keyboard->KeyCode == FN_KEY_A && keyboard->Pressed)
+    {
+        memory->PlatformDebugLog("A was pressed\n");
+    }
 }
 
 extern "C" __declspec(dllexport) FN_GAME_TICK(fn_game_tick)

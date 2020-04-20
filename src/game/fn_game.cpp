@@ -48,7 +48,7 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
     if (file.Data)
     {
         memory->PlatformDebugLog("Writing file\n");
-        memory->PlatformWriteFile("E:/Github/FarNorthEngine/res/test.out", file.FileSize, file.Data);
+        memory->PlatformWriteFile("E:/Github/FarNorthEngine/data/test.out", file.FileSize, file.Data);
         memory->PlatformFreeFile(file.Data);
     }
     
