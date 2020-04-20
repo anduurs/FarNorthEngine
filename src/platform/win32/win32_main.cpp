@@ -206,7 +206,14 @@ internal void win32_begin_play_back_input(win32_state* win32State, int32 inputPl
     DWORD bytesToRead = (DWORD)win32State->TotalGameMemorySize;
     assert(bytesToRead == win32State->TotalGameMemorySize);
     DWORD bytesRead;
-    ReadFile(win32State->PlaybackHandle, win32State->GameMemoryBlock, bytesToRead, &bytesRead, 0);
+    if (ReadFile(win32State->PlaybackHandle, win32State->GameMemoryBlock, bytesToRead, &bytesRead, 0))
+    {
+
+    }
+    else
+    {
+
+    }
 }
 
 internal void win32_end_play_back_input(win32_state* win32State)
@@ -227,7 +234,14 @@ internal void win32_play_back_input(win32_state* win32State, game_input* input)
             int32 playingIndex = win32State->InputPlayingIndex;
             win32_end_play_back_input(win32State);
             win32_begin_play_back_input(win32State, playingIndex);
-            ReadFile(win32State->PlaybackHandle, input, sizeof(*input), &bytesRead, 0);
+            if (ReadFile(win32State->PlaybackHandle, input, sizeof(*input), &bytesRead, 0))
+            {
+
+            }
+            else
+            {
+
+            }
         }
     }
 }
@@ -245,9 +259,9 @@ internal void win32_process_messages(win32_state* win32State, game_input* input)
                 GlobalApplicationRunning = false;       
             } break;
 
-            case WM_SYSKEYDOWN:
-            case WM_SYSKEYUP:
+            case WM_SYSKEYDOWN:            
             case WM_KEYDOWN:
+            case WM_SYSKEYUP:
             case WM_KEYUP:
             {
                 uint32 vkCode = (uint32)message.wParam;
@@ -357,7 +371,7 @@ internal void win32_unload_game_code(win32_game_code* gameCode)
     gameCode->OutputSound = fn_game_output_sound_stub;
 }
 
-internal void concat_strings(
+internal void fn_str_concat(
     size_t sourceACount, char* sourceA, 
     size_t sourceBCount, char* sourceB, 
     size_t destCount, char* dest)
@@ -375,8 +389,25 @@ internal void concat_strings(
     *dest++ = 0;
 }
 
+inline LARGE_INTEGER win32_get_wall_clock()
+{
+    LARGE_INTEGER result;
+    QueryPerformanceCounter(&result);
+    return result;
+}
+
+inline float win32_get_seconds_elapsed(LARGE_INTEGER start, LARGE_INTEGER end)
+{
+    return ((float)(end.QuadPart - start.QuadPart) / (float)GlobalPerfCountFrequency);
+}
+
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR commandLine, int showCode)
 {
+    LARGE_INTEGER perfCountFrequencyResult;
+    QueryPerformanceFrequency(&perfCountFrequencyResult);
+
+    GlobalPerfCountFrequency = perfCountFrequencyResult.QuadPart;
+
     char exeFileName[MAX_PATH];
 
     DWORD sizeOfFileName = GetModuleFileNameA(0, exeFileName, sizeof(exeFileName));
@@ -392,14 +423,14 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
     char sourceGameCodeDLLFileName[] = "game.dll";
     char sourceGameCodeDLLFullPath[MAX_PATH];
 
-    concat_strings(onePastLastSlash - exeFileName, exeFileName, 
+    fn_str_concat(onePastLastSlash - exeFileName, exeFileName, 
         sizeof(sourceGameCodeDLLFileName) - 1, sourceGameCodeDLLFileName, 
         sizeof(sourceGameCodeDLLFullPath), sourceGameCodeDLLFullPath);
 
     char tempGameCodeDLLFileName[] = "game_temp.dll";
     char tempGameCodeDLLFullPath[MAX_PATH];
 
-    concat_strings(onePastLastSlash - exeFileName, exeFileName,
+    fn_str_concat(onePastLastSlash - exeFileName, exeFileName,
         sizeof(tempGameCodeDLLFileName) - 1, tempGameCodeDLLFileName,
         sizeof(tempGameCodeDLLFullPath), tempGameCodeDLLFullPath);
 
@@ -469,25 +500,25 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
             GlobalSoundBuffer->Play(0, 0, DSBPLAY_LOOPING);
             
-            GlobalApplicationRunning = true;
-
             game_input input[2] = {};
             game_input* oldInput = &input[0];
             game_input* newInput = &input[1];
 
-            LARGE_INTEGER perfCountFrequencyResult;
-            QueryPerformanceFrequency(&perfCountFrequencyResult);
-
-            uint64 perfCountFrequency = perfCountFrequencyResult.QuadPart;
-
-            LARGE_INTEGER lastCounter;
-            QueryPerformanceCounter(&lastCounter);
-
-            uint64 lastCycleCount = __rdtsc();
-
             FILETIME DLLWriteTime = win32_get_last_write_time(sourceGameCodeDLLFullPath);
             win32_game_code game = win32_load_game_code(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath, DLLWriteTime);
+
             game.Init(&gameMemory);
+
+            LARGE_INTEGER lastCounter = win32_get_wall_clock();
+
+            float targetTickRate = 5;
+            float targetSecondsPerTick = 1.0f / targetTickRate;
+
+            float accumulator = 0.0f;
+            float frameCounter = 0.0f;
+            uint32 tickCounter = 0;
+
+            GlobalApplicationRunning = true;
             
             while (GlobalApplicationRunning)
             {
@@ -514,7 +545,19 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
                 game.ProcessInput(&gameMemory, newInput);
 
-                game.Tick(&gameMemory);
+                LARGE_INTEGER newCounter = win32_get_wall_clock();
+                float passedTime = win32_get_seconds_elapsed(lastCounter, newCounter);
+                lastCounter = newCounter;
+
+                accumulator += passedTime;
+                frameCounter += passedTime;
+
+                while (accumulator >= targetSecondsPerTick)
+                {
+                    game.Tick(&gameMemory);
+                    tickCounter++;
+                    accumulator -= targetSecondsPerTick;
+                }
 
                 game_offscreen_buffer buffer = {};
                 buffer.Width = GlobalBackBuffer.Width;
@@ -564,24 +607,15 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 win32_window_update(deviceContext, &GlobalBackBuffer, dimension.Width, 
                     dimension.Height, 0, 0, dimension.Width, dimension.Height);
 
-                uint64 endCycleCount = __rdtsc();    
+                if (frameCounter >= 1)
+                {
+                    char printBuffer[256];
+                    sprintf_s(printBuffer, "%d ticks\n", tickCounter);
+                    OutputDebugStringA(printBuffer);
 
-                LARGE_INTEGER endCounter;
-                QueryPerformanceCounter(&endCounter);
-
-                uint64 cyclesElapsed = endCycleCount - lastCycleCount;
-                int64 counterElapsed = endCounter.QuadPart - lastCounter.QuadPart;
-                
-                float msPerFrame = (float)((1000.0f * (float)counterElapsed) / (float)perfCountFrequency);
-                float fps = (float)perfCountFrequency / (float)counterElapsed;
-                float megaCyclesPerFrame = (float)(cyclesElapsed / (1000.0f * 1000.0f));
-
-                char printBuffer[256];
-                sprintf_s(printBuffer, "%f ms/frame - %f FPS - %f MegaCycles/frame\n", msPerFrame, fps, megaCyclesPerFrame);
-                OutputDebugStringA(printBuffer);
-
-                lastCounter = endCounter;
-                lastCycleCount = endCycleCount;
+                    frameCounter = 0;
+                    tickCounter = 0;
+                }
 
                 game_input* temp = newInput;
                 newInput = oldInput;

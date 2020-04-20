@@ -51,3 +51,4 @@ struct win32_window_dimension
 
 global_variable volatile bool GlobalApplicationRunning;
 global_variable win32_offscreen_buffer GlobalBackBuffer;
+global_variable uint64 GlobalPerfCountFrequency;
