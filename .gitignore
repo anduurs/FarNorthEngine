@@ -6,3 +6,4 @@ out/
 
 # Files to ignore
 *.sln
+CMakeSettings.json
