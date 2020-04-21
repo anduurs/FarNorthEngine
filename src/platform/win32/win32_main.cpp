@@ -408,6 +408,51 @@ inline float win32_get_seconds_elapsed(LARGE_INTEGER start, LARGE_INTEGER end)
     return ((float)(end.QuadPart - start.QuadPart) / (float)GlobalPerfCountFrequency);
 }
 
+#include <GL/GL.h>
+
+internal HGLRC win32_opengl_init(HDC deviceContext)
+{
+    PIXELFORMATDESCRIPTOR pfd =
+    {
+        sizeof(PIXELFORMATDESCRIPTOR),
+        1,
+        PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    // Flags
+        PFD_TYPE_RGBA,        // The kind of framebuffer. RGBA or palette.
+        32,                   // Colordepth of the framebuffer.
+        0, 0, 0, 0, 0, 0,
+        0,
+        0,
+        0,
+        0, 0, 0, 0,
+        24,                   // Number of bits for the depthbuffer
+        8,                    // Number of bits for the stencilbuffer
+        0,                    // Number of Aux buffers in the framebuffer.
+        PFD_MAIN_PLANE,
+        0,
+        0, 0, 0
+    };
+
+    int pixelFormat = ChoosePixelFormat(deviceContext, &pfd);
+    SetPixelFormat(deviceContext, pixelFormat, &pfd);
+    HGLRC glContext = wglCreateContext(deviceContext);
+
+    // NOTE(Anders): The current context is thread-specific; 
+    // each thread can have a different context current, 
+    // and it's dangerous to have the same context current in multiple threads
+    wglMakeCurrent(deviceContext, glContext);
+    OutputDebugStringA("OPENGL VERSION \n");
+    OutputDebugStringA((char*)glGetString(GL_VERSION));
+    OutputDebugStringA("\n");
+
+    return glContext;
+}
+
+internal void win32_opengl_delete_context(HDC deviceContext, HGLRC context)
+{
+    wglMakeCurrent(deviceContext, NULL);
+    wglDeleteContext(context);
+}
+
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR commandLine, int showCode)
 {
     LARGE_INTEGER perfCountFrequencyResult;
@@ -468,6 +513,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
         if (window)
         {
             HDC deviceContext = GetDC(window);
+
+            HGLRC openglContext = win32_opengl_init(deviceContext);
 
             win32_state win32State = {};
 
@@ -635,6 +682,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 newInput = oldInput;
                 oldInput = temp;
             }
+
+            win32_opengl_delete_context(deviceContext, openglContext);
         }
     }
     
