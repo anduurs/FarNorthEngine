@@ -6,7 +6,7 @@
 #define Megabytes(Value) ((Kilobytes(Value))*1024LL)
 #define Gigabytes(Value) ((Megabytes(Value))*1024LL)
 
-#define Pi32 3.14159265359f
+#define PI 3.14159265359f
 
 #define internal static
 #define local_persist static
@@ -21,31 +21,31 @@
 #endif
 
 /* signed char, 1 byte, -128 to 127 */
-using int8 = int8_t;
+typedef int8_t int8;
 
 /* unsigned char, 1 byte , 0 to 255 */
-using uint8 = uint8_t;
+typedef uint8_t uint8;
 
 /* short, 2 bytes, -32,768 to 32,767 */
-using int16 = int16_t;
+typedef int16_t int16;
 
 /* unsigned short, 2 bytes, 0 to 65,535 */
-using uint16 = uint16_t;
+typedef uint16_t uint16;
 
 /* int, 4 bytes, -2,147,483,648 to 2,147,483,647 */
-using int32 = int32_t;
+typedef int32_t int32;
 
 /* unsigned int, 4 bytes, 0 to 4,294,967,295 */
-using uint32 = uint32_t;
+typedef uint32_t uint32;
 
 /* long long, 8 bytes, -(2^63) to (2^63)-1 */
-using int64 = int64_t;
+typedef int64_t int64;
 
 /* unsigned long long, 8 bytes, 0 to 18,446,744,073,709,551,615 */
-using uint64 = uint64_t;
+typedef uint64_t uint64;
 
 /* unsigned long long, 8bytes */
 /* Any valid pointer to void can be converted to this type 
 * then converted back to pointer to void, 
 * and the result will compare equal to the original pointer */
-using uint64ptr = uintptr_t;
+typedef uintptr_t uint64ptr;

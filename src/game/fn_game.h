@@ -2,6 +2,7 @@
 
 #include "../common/fn_common.h"
 #include "../math/fn_math.h"
+#include "fn_game_input.h"
 
 // Services that the platform layer provides to the game
 struct platform_file_result
@@ -102,11 +103,6 @@ struct game_controller_input
     game_button_state LeftTrigger;
     game_button_state RightTrigger;
 };
-
-#define FN_KEY_W 87
-#define FN_KEY_S 83
-#define FN_KEY_D 68
-#define FN_KEY_A 65
 
 struct game_keyboard_input
 {

@@ -59,7 +59,7 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
         memory->PlatformWriteFile("E:/Github/FarNorthEngine/data/test.out", file.FileSize, file.Data);
         memory->PlatformFreeFile(file.Data);
     }
-    
+
     memory->IsInitialized = true;
 }
 
@@ -103,10 +103,6 @@ extern "C" __declspec(dllexport) FN_GAME_PROCESS_INPUT(fn_game_process_input)
         {
             gameState->PlayerVelocityX = keyboard->Pressed ? speed : 0;
         }
-
-        keyboard->KeyCode = 0;
-        keyboard->Pressed = false;
-        keyboard->Released = false;
     }
 }
 
@@ -127,7 +123,7 @@ extern "C" __declspec(dllexport) FN_GAME_RENDER(fn_game_render)
     game_state* gameState = (game_state*)memory->PermanentStorage;
 
     renderer_clear_screen(buffer, 0x00, 0x00, 0x00);
-    renderer_draw_quad(buffer, (int32)gameState->PlayerX, (int32)gameState->PlayerY, 25, 25, 0x00, 0xFF, 0x00);
+    renderer_draw_quad(buffer, (int32)gameState->PlayerX, (int32)gameState->PlayerY, 25, 25, 0xFF, 0xFF, 0x00);
 }
 
 extern "C" __declspec(dllexport) FN_GAME_OUTPUT_SOUND(fn_game_output_sound)
@@ -150,6 +146,6 @@ extern "C" __declspec(dllexport) FN_GAME_OUTPUT_SOUND(fn_game_output_sound)
         *sampleOut++ = sampleValue;
         *sampleOut++ = sampleValue;
 
-        gameState->tSine += 2.0f * Pi32 * 1.0f / (float)wavePeriod;
+        gameState->tSine += 2.0f * PI * 1.0f / (float)wavePeriod;
     }
 }

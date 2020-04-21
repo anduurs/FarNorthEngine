@@ -39,6 +39,6 @@ add_custom_command(TARGET GameLib WORKING_DIRECTORY ${BuildDir}
 add_executable(Game WIN32 ${SourceDir}platform/win32/win32_main.cpp)
 set_target_properties(Game PROPERTIES OUTPUT_NAME Win64Game)
 target_compile_options(Game PRIVATE -FmWin64Game.map)
-target_compile_definitions(Game PRIVATE ${CommonCompileDerfinitions})
+target_compile_definitions(Game PRIVATE ${CommonCompilerDefinitions})
 target_link_libraries(Game PRIVATE ${CommonLinkerLibs})
 target_link_options(Game PRIVATE ${CommonLinkerFlags})

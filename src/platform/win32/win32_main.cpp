@@ -178,11 +178,11 @@ internal void win32_begin_recording_input(win32_state* win32State, int32 inputRe
     win32State->InputRecordingIndex = inputRecordingIndex;
     const char* fileName = "input_record.fni";
     win32State->RecordingHandle = CreateFileA(fileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
-    
     DWORD bytesToWrite = (DWORD)win32State->TotalGameMemorySize;
     assert(bytesToWrite == win32State->TotalGameMemorySize);
     DWORD bytesWritten;
     WriteFile(win32State->RecordingHandle, win32State->GameMemoryBlock, bytesToWrite, &bytesWritten, 0);
+    OutputDebugStringA("input recording file written\n");
 }
 
 internal void win32_end_recording_input(win32_state* win32State)
@@ -201,14 +201,14 @@ internal void win32_begin_play_back_input(win32_state* win32State, int32 inputPl
 {
     win32State->InputPlayingIndex = inputPlayingIndex;
 
-    const char* fileName = "input_playback.fni";
+    const char* fileName = "input_record.fni";
     win32State->PlaybackHandle = CreateFileA(fileName, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
     DWORD bytesToRead = (DWORD)win32State->TotalGameMemorySize;
     assert(bytesToRead == win32State->TotalGameMemorySize);
     DWORD bytesRead;
     if (ReadFile(win32State->PlaybackHandle, win32State->GameMemoryBlock, bytesToRead, &bytesRead, 0))
     {
-
+        
     }
     else
     {
@@ -261,20 +261,6 @@ internal void win32_process_messages(win32_state* win32State, game_input* input)
 
             case WM_SYSKEYDOWN:            
             case WM_KEYDOWN:
-            {
-                uint32 vkCode = (uint32)message.wParam;
-
-                bool wasDown = ((message.lParam & (1 << 30)) != 0);
-                bool isDown = ((message.lParam & (1 << 31)) == 0);
-
-                if (wasDown != isDown)
-                {
-                    input->Keyboard.Pressed = true;
-                    input->Keyboard.Released = false;
-                    input->Keyboard.KeyCode = vkCode;
-                }
-
-            } break;
             case WM_SYSKEYUP:
             case WM_KEYUP:
             {
@@ -285,8 +271,8 @@ internal void win32_process_messages(win32_state* win32State, game_input* input)
 
                 if (wasDown != isDown)
                 {
-                    input->Keyboard.Pressed = false;
-                    input->Keyboard.Released = true;
+                    input->Keyboard.Pressed = isDown;
+                    input->Keyboard.Released = !isDown;
                     input->Keyboard.KeyCode = vkCode;
 
                     if (vkCode == VK_ESCAPE)
@@ -299,10 +285,12 @@ internal void win32_process_messages(win32_state* win32State, game_input* input)
                         {
                             if (win32State->InputRecordingIndex == 0)
                             {
+                                OutputDebugStringA("Begin recording input \n");
                                 win32_begin_recording_input(win32State, 1);
                             }
                             else
                             {
+                                OutputDebugStringA("End recording input \n");
                                 win32_end_recording_input(win32State);
                                 win32_begin_play_back_input(win32State, 1);
                             }
@@ -486,7 +474,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
             game_memory gameMemory = {};
 
             gameMemory.PermanentStorageSize = Megabytes(64);
-            gameMemory.TransientStorageSize = Gigabytes((uint64)4);
+            gameMemory.TransientStorageSize = Gigabytes((uint64)2);
 
             uint64 totalSize = gameMemory.PermanentStorageSize + gameMemory.TransientStorageSize;
             win32State.TotalGameMemorySize = totalSize;
@@ -563,6 +551,13 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 }
 
                 game.ProcessInput(&gameMemory, newInput);
+
+                if (!win32State.InputPlayingIndex)
+                {
+                    newInput->Keyboard.KeyCode = 0;
+                    newInput->Keyboard.Pressed = false;
+                    newInput->Keyboard.Released = false;
+                }
 
                 LARGE_INTEGER newCounter = win32_get_wall_clock();
                 float passedTime = win32_get_seconds_elapsed(lastCounter, newCounter);
