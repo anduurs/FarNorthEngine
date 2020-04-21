@@ -2,6 +2,7 @@
 bin/
 build/
 out/
+4coder/
 .vscode/
 .vs/
 

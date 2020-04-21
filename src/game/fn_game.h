@@ -65,27 +65,47 @@ struct game_button_state
 struct game_controller_input
 {
     bool IsAnalog;
-    
-    float StartX;
-    float StartY;
+    bool IsConnected;
 
-    float MinX;
-    float MinY;
+    float LStickAverageX;
+    float LStickAverageY;
 
-    float MaxX;
-    float MaxY;
+    float RStickAverageX;
+    float RStickAverageY;
 
-    float EndX;
-    float EndY;
+    game_button_state Start;
+    game_button_state Back;
 
-    game_button_state Up;
-    game_button_state Down;
-    game_button_state Right;
-    game_button_state Left;
+    game_button_state Dpad_Up;
+    game_button_state Dpad_Down;
+    game_button_state Dpad_Right;
+    game_button_state Dpad_Left;
+
+    game_button_state LStickUp;
+    game_button_state LStickDown;
+    game_button_state LStickRight;
+    game_button_state LStickLeft;
+
+    game_button_state RStickUp;
+    game_button_state RStickDown;
+    game_button_state RStickRight;
+    game_button_state RStickLeft;
+
+    game_button_state ButtonUp;
+    game_button_state ButtonDown;
+    game_button_state ButtonRight;
+    game_button_state ButtonLeft;
+
     game_button_state LeftShoulder;
     game_button_state RightShoulder;
+
+    game_button_state LeftTrigger;
+    game_button_state RightTrigger;
 };
 
+#define FN_KEY_W 87
+#define FN_KEY_S 83
+#define FN_KEY_D 68
 #define FN_KEY_A 65
 
 struct game_keyboard_input
@@ -95,16 +115,26 @@ struct game_keyboard_input
     bool Released;
 };
 
+struct game_mouse_input
+{
+
+};
+
 struct game_input
 {
     game_controller_input Gamepads[4];
     game_keyboard_input Keyboard;
+    game_mouse_input Mouse;
 };
 
 struct game_state
 {
-    int32 PlayerX;
-    int32 PlayerY;
+    float PlayerX;
+    float PlayerY;
+
+    float PlayerVelocityX;
+    float PlayerVelocityY;
+
     float tSine;
 };
 
@@ -117,7 +147,7 @@ FN_GAME_INIT(fn_game_init_stub){}
 typedef FN_GAME_PROCESS_INPUT(game_process_input);
 FN_GAME_PROCESS_INPUT(fn_game_process_input_stub){}
 
-#define FN_GAME_TICK(name) void name(game_memory* memory)
+#define FN_GAME_TICK(name) void name(game_memory* memory, float dt)
 typedef FN_GAME_TICK(game_tick);
 FN_GAME_TICK(fn_game_tick_stub){}
 

@@ -21,12 +21,17 @@ internal void renderer_draw_quad(game_offscreen_buffer* buffer,
     int32 width, int32 height,
     uint8 red, uint8 green, uint8 blue)
 {
+    if (xStart <= 0) xStart = 1;
+    if (xStart + width >= buffer->Width) xStart = buffer->Width - width;
+    if (yStart <= 0) yStart = 0;
+    if (yStart + height >= buffer->Height) yStart = buffer->Height - height;
+
     uint32* row = (uint32*)buffer->Data; 
     
     for (int32 y = yStart; y < yStart + height; y++)
     {
         for (int32 x = xStart; x < xStart + width; x++)
-        {           
+        {
             uint32* pixel = (row + x) + y * buffer->Width;  
             *pixel++ = ((red << 16) | (green << 8) | blue);
         }
@@ -41,6 +46,9 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
 
     gameState->PlayerX = 1280/2;
     gameState->PlayerY = 720/2;
+
+    gameState->PlayerVelocityX = 0.0f;
+    gameState->PlayerVelocityY = 0.0f;
 
     const char* fileName = __FILE__;
     platform_file_result file = memory->PlatformReadFile(fileName);
@@ -57,22 +65,59 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
 
 extern "C" __declspec(dllexport) FN_GAME_PROCESS_INPUT(fn_game_process_input)
 {
+    assert(sizeof(game_state) <= memory->PermanentStorageSize);
+
+    game_state* gameState = (game_state*)memory->PermanentStorage;
+
     game_controller_input* gamepad = &input->Gamepads[0];
-    if (gamepad->IsAnalog)
-    {
 
+    if (gamepad->IsConnected)
+    {
+        if (gamepad->IsAnalog)
+        {
+
+        }
     }
-
-    game_keyboard_input* keyboard = &input->Keyboard;
-
-    if (keyboard->KeyCode == FN_KEY_A && keyboard->Pressed)
+    else
     {
-        memory->PlatformDebugLog("A was pressed\n");
+        game_keyboard_input* keyboard = &input->Keyboard;
+
+        float speed = 5.0f;
+
+        if (keyboard->KeyCode == FN_KEY_W)
+        {
+            gameState->PlayerVelocityY = keyboard->Pressed ? -speed : 0;
+        }
+
+        if (keyboard->KeyCode == FN_KEY_S)
+        {
+            gameState->PlayerVelocityY = keyboard->Pressed ? speed : 0;
+        }
+
+        if (keyboard->KeyCode == FN_KEY_A)
+        {
+            gameState->PlayerVelocityX = keyboard->Pressed ? -speed : 0;
+        }
+
+        if (keyboard->KeyCode == FN_KEY_D)
+        {
+            gameState->PlayerVelocityX = keyboard->Pressed ? speed : 0;
+        }
+
+        keyboard->KeyCode = 0;
+        keyboard->Pressed = false;
+        keyboard->Released = false;
     }
 }
 
 extern "C" __declspec(dllexport) FN_GAME_TICK(fn_game_tick)
 {
+    assert(sizeof(game_state) <= memory->PermanentStorageSize);
+
+    game_state* gameState = (game_state*)memory->PermanentStorage;
+
+    gameState->PlayerX += gameState->PlayerVelocityX;
+    gameState->PlayerY += gameState->PlayerVelocityY;
 }
 
 extern "C" __declspec(dllexport) FN_GAME_RENDER(fn_game_render)
@@ -82,7 +127,7 @@ extern "C" __declspec(dllexport) FN_GAME_RENDER(fn_game_render)
     game_state* gameState = (game_state*)memory->PermanentStorage;
 
     renderer_clear_screen(buffer, 0x00, 0x00, 0x00);
-    renderer_draw_quad(buffer, gameState->PlayerX, gameState->PlayerY, 50, 50, 0xFF, 0x00, 0x00);
+    renderer_draw_quad(buffer, (int32)gameState->PlayerX, (int32)gameState->PlayerY, 25, 25, 0x00, 0xFF, 0x00);
 }
 
 extern "C" __declspec(dllexport) FN_GAME_OUTPUT_SOUND(fn_game_output_sound)

@@ -43,39 +43,81 @@ internal void win32_input_poll_gamepad(game_input* oldInput, game_input* newInpu
             XINPUT_GAMEPAD* gamepad = &gamepadState.Gamepad;
 
             newGamepad->IsAnalog = true;
+            newGamepad->IsConnected = true;
 
-            float x;
-
-            if (gamepad->sThumbLX < 0)
+            // LEFT STICK
+            if (gamepad->sThumbLX < -XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
             {
-                x = (float)gamepad->sThumbLX / 32768.0f;
+                newGamepad->LStickAverageX = (float)gamepad->sThumbLX / 32768.0f;
             }
-            else
+            else if (gamepad->sThumbLX > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
             {
-                x = (float)gamepad->sThumbLX / 32767.0f;
+                newGamepad->LStickAverageX = (float)gamepad->sThumbLX / 32767.0f;
             }
 
-            newGamepad->MinX = newGamepad->MaxX = newGamepad->EndX = x;
+            if (gamepad->sThumbLY < -XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
+            {
+                newGamepad->LStickAverageY = (float)gamepad->sThumbLY / 32768.0f;
+            }
+            else if (gamepad->sThumbLY > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
+            {
+                newGamepad->LStickAverageY = (float)gamepad->sThumbLY / 32767.0f;
+            }
 
-            float y;
+            // RIGHT STICK
+            if (gamepad->sThumbRX < -XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+            {
+                newGamepad->RStickAverageX = (float)gamepad->sThumbRX / 32768.0f;
+            }
+            else if (gamepad->sThumbRX > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+            {
+                newGamepad->RStickAverageX = (float)gamepad->sThumbRX / 32767.0f;
+            }
+
+            if (gamepad->sThumbRY < -XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+            {
+                newGamepad->RStickAverageY = (float)gamepad->sThumbRY / 32768.0f;
+            }
+            else if (gamepad->sThumbRY > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+            {
+                newGamepad->RStickAverageY = (float)gamepad->sThumbRY / 32767.0f;
+            }
+
+            // TODO(Anders): LEFT TRIGGER
+
+            // TODO(Anders): RIGHT TRIGGER
+
+            float stickThreshold = 0.5f;
+
+            win32_input_process_digital_button(&oldGamepad->LStickRight, &newGamepad->LStickRight, 1, newGamepad->LStickAverageX < -stickThreshold ? 1 : 0);
+            win32_input_process_digital_button(&oldGamepad->LStickLeft, &newGamepad->LStickLeft, 1, newGamepad->LStickAverageX > stickThreshold ? 1 : 0);
+            win32_input_process_digital_button(&oldGamepad->LStickUp, &newGamepad->LStickUp, 1, newGamepad->LStickAverageY > stickThreshold ? 1 : 0);
+            win32_input_process_digital_button(&oldGamepad->LStickDown, &newGamepad->LStickDown, 1, newGamepad->LStickAverageY < -stickThreshold ? 1 : 0);
+
+            win32_input_process_digital_button(&oldGamepad->RStickRight, &newGamepad->RStickRight, 1, newGamepad->RStickAverageX < -stickThreshold ? 1 : 0);
+            win32_input_process_digital_button(&oldGamepad->RStickLeft, &newGamepad->RStickLeft, 1, newGamepad->RStickAverageX > stickThreshold ? 1 : 0);
+            win32_input_process_digital_button(&oldGamepad->RStickUp, &newGamepad->RStickUp, 1, newGamepad->RStickAverageY > stickThreshold ? 1 : 0);
+            win32_input_process_digital_button(&oldGamepad->RStickDown, &newGamepad->RStickDown, 1, newGamepad->RStickAverageY < -stickThreshold ? 1 : 0);
             
-            if (gamepad->sThumbLY < 0)
-            {
-                y = (float)gamepad->sThumbLY / 32768.0f;
-            }
-            else
-            {
-                y = (float)gamepad->sThumbLY / 32767.0f;
-            }
+            win32_input_process_digital_button(&oldGamepad->ButtonDown, &newGamepad->ButtonDown, XINPUT_GAMEPAD_A, gamepad->wButtons);
+            win32_input_process_digital_button(&oldGamepad->ButtonUp, &newGamepad->ButtonUp, XINPUT_GAMEPAD_Y, gamepad->wButtons);
+            win32_input_process_digital_button(&oldGamepad->ButtonRight, &newGamepad->ButtonRight, XINPUT_GAMEPAD_B, gamepad->wButtons);
+            win32_input_process_digital_button(&oldGamepad->ButtonLeft, &newGamepad->ButtonLeft, XINPUT_GAMEPAD_X, gamepad->wButtons);
 
-            newGamepad->MinY = newGamepad->MaxY = newGamepad->EndY = y;
-            
-            win32_input_process_digital_button(&oldGamepad->Down, &newGamepad->Down, XINPUT_GAMEPAD_A, gamepad->wButtons);
-            win32_input_process_digital_button(&oldGamepad->Up, &newGamepad->Up, XINPUT_GAMEPAD_Y, gamepad->wButtons);
-            win32_input_process_digital_button(&oldGamepad->Right, &newGamepad->Right, XINPUT_GAMEPAD_B, gamepad->wButtons);
-            win32_input_process_digital_button(&oldGamepad->Left, &newGamepad->Left, XINPUT_GAMEPAD_X, gamepad->wButtons);
+            win32_input_process_digital_button(&oldGamepad->Dpad_Down, &newGamepad->Dpad_Down, XINPUT_GAMEPAD_DPAD_DOWN, gamepad->wButtons);
+            win32_input_process_digital_button(&oldGamepad->Dpad_Up, &newGamepad->Dpad_Up, XINPUT_GAMEPAD_DPAD_UP, gamepad->wButtons);
+            win32_input_process_digital_button(&oldGamepad->Dpad_Right, &newGamepad->Dpad_Right, XINPUT_GAMEPAD_DPAD_RIGHT, gamepad->wButtons);
+            win32_input_process_digital_button(&oldGamepad->Dpad_Left, &newGamepad->Dpad_Left, XINPUT_GAMEPAD_DPAD_LEFT, gamepad->wButtons);
+
+            win32_input_process_digital_button(&oldGamepad->Start, &newGamepad->Start, XINPUT_GAMEPAD_START, gamepad->wButtons);
+            win32_input_process_digital_button(&oldGamepad->Back, &newGamepad->Back, XINPUT_GAMEPAD_BACK, gamepad->wButtons);
+
             win32_input_process_digital_button(&oldGamepad->LeftShoulder, &newGamepad->LeftShoulder, XINPUT_GAMEPAD_LEFT_SHOULDER, gamepad->wButtons);
             win32_input_process_digital_button(&oldGamepad->RightShoulder, &newGamepad->RightShoulder, XINPUT_GAMEPAD_RIGHT_SHOULDER, gamepad->wButtons);
+        }
+        else
+        {
+            newGamepad->IsConnected = false;
         }
     }
 }

@@ -106,7 +106,7 @@ internal void win32_window_init_offscreen_buffer(win32_offscreen_buffer* buffer,
     buffer->BytesPerPixel = 4;
     
     int32 bitmapMemorySize = width * height * buffer->BytesPerPixel;
-    buffer->Data = VirtualAlloc(0, bitmapMemorySize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+    buffer->Data = VirtualAlloc(0, bitmapMemorySize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     
     buffer->Pitch = width * buffer->BytesPerPixel;
 }
@@ -261,16 +261,35 @@ internal void win32_process_messages(win32_state* win32State, game_input* input)
 
             case WM_SYSKEYDOWN:            
             case WM_KEYDOWN:
-            case WM_SYSKEYUP:
-            case WM_KEYUP:
             {
                 uint32 vkCode = (uint32)message.wParam;
+
                 bool wasDown = ((message.lParam & (1 << 30)) != 0);
                 bool isDown = ((message.lParam & (1 << 31)) == 0);
 
                 if (wasDown != isDown)
                 {
-                    if(vkCode == VK_ESCAPE)
+                    input->Keyboard.Pressed = true;
+                    input->Keyboard.Released = false;
+                    input->Keyboard.KeyCode = vkCode;
+                }
+
+            } break;
+            case WM_SYSKEYUP:
+            case WM_KEYUP:
+            {
+                uint32 vkCode = (uint32)message.wParam;
+
+                bool wasDown = ((message.lParam & (1 << 30)) != 0);
+                bool isDown = ((message.lParam & (1 << 31)) == 0);
+
+                if (wasDown != isDown)
+                {
+                    input->Keyboard.Pressed = false;
+                    input->Keyboard.Released = true;
+                    input->Keyboard.KeyCode = vkCode;
+
+                    if (vkCode == VK_ESCAPE)
                     {
                         GlobalApplicationRunning = false;
                     }
@@ -511,7 +530,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
             LARGE_INTEGER lastCounter = win32_get_wall_clock();
 
-            float targetTickRate = 5;
+            float targetTickRate = 60;
             float targetSecondsPerTick = 1.0f / targetTickRate;
 
             float accumulator = 0.0f;
@@ -554,7 +573,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
                 while (accumulator >= targetSecondsPerTick)
                 {
-                    game.Tick(&gameMemory);
+                    game.Tick(&gameMemory, targetSecondsPerTick);
                     tickCounter++;
                     accumulator -= targetSecondsPerTick;
                 }
