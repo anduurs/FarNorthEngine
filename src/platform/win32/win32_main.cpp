@@ -113,17 +113,17 @@ internal void win32_window_init_offscreen_buffer(win32_offscreen_buffer* buffer,
     buffer->Pitch = width * buffer->BytesPerPixel;
 }
 
-internal void win32_window_update(HDC deviceContext, win32_offscreen_buffer* buffer, 
-                    int32 windowWidth, int32 windowHeight,
-                    int32 x, int32 y, int32 width, int32 height)
-{
-    StretchDIBits(deviceContext, 
-                  0, 0, windowWidth, windowHeight, 
-                  0, 0, buffer->Width, buffer->Height,
-                  buffer->Data, 
-                  &buffer->Info,
-                  DIB_RGB_COLORS, SRCCOPY);
-}
+//internal void win32_window_update(HDC deviceContext, win32_offscreen_buffer* buffer, 
+//                    int32 windowWidth, int32 windowHeight,
+//                    int32 x, int32 y, int32 width, int32 height)
+//{
+//    StretchDIBits(deviceContext, 
+//                  0, 0, windowWidth, windowHeight, 
+//                  0, 0, buffer->Width, buffer->Height,
+//                  buffer->Data, 
+//                  &buffer->Info,
+//                  DIB_RGB_COLORS, SRCCOPY);
+//}
 
 internal LRESULT CALLBACK win32_window_callback(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -153,18 +153,18 @@ internal LRESULT CALLBACK win32_window_callback(HWND window, UINT message, WPARA
             PostQuitMessage(0);
         } break;
         
-        case WM_PAINT:
-        {
-            PAINTSTRUCT paint;
-            HDC deviceContext = BeginPaint(window, &paint);
-            int32 x = paint.rcPaint.left;
-            int32 y = paint.rcPaint.top;
-            int32 width = paint.rcPaint.right - paint.rcPaint.left;
-            int32 height = paint.rcPaint.bottom - paint.rcPaint.top;
-            win32_window_dimension dimension = win32_window_get_dimension(window);
-            win32_window_update(deviceContext, &GlobalBackBuffer, dimension.Width, dimension.Height, x, y, width, height);
-            EndPaint(window, &paint);
-        } break;
+        //case WM_PAINT:
+        //{
+        //    PAINTSTRUCT paint;
+        //    HDC deviceContext = BeginPaint(window, &paint);
+        //    int32 x = paint.rcPaint.left;
+        //    int32 y = paint.rcPaint.top;
+        //    int32 width = paint.rcPaint.right - paint.rcPaint.left;
+        //    int32 height = paint.rcPaint.bottom - paint.rcPaint.top;
+        //    win32_window_dimension dimension = win32_window_get_dimension(window);
+        //    win32_window_update(deviceContext, &GlobalBackBuffer, dimension.Width, dimension.Height, x, y, width, height);
+        //    EndPaint(window, &paint);
+        //} break;
 
         default:
         {
@@ -453,6 +453,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
     if (RegisterClassEx(&windowClass))
     {
         const char* applicationName = "Far North Engine v0.01";
+
+        int32 windowWidth = 800;
+        int32 windowHeight = 600;
         
         HWND window = CreateWindowEx(0,
                                      windowClass.lpszClassName,
@@ -460,8 +463,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                                      WS_OVERLAPPEDWINDOW | WS_VISIBLE,
                                      CW_USEDEFAULT,
                                      CW_USEDEFAULT,
-                                     CW_USEDEFAULT,
-                                     CW_USEDEFAULT,
+                                     windowWidth,
+                                     windowHeight,
                                      0,
                                      0,
                                      hInstance,
@@ -469,9 +472,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
         
         if (window)
         {
+            win32_window_dimension dim = win32_window_get_dimension(window);
+
             HDC deviceContext = GetDC(window);
 
-            HGLRC openglContext = win32_opengl_init(deviceContext);
+            HGLRC openglContext = win32_opengl_init(deviceContext, 0, 0, windowWidth, windowHeight);
 
             win32_state win32State = {};
 
@@ -492,7 +497,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
             gameMemory.PlatformDebugLog = PlatformDebugLog;
 
             win32_input_load_xinput();
-            win32_window_init_offscreen_buffer(&GlobalBackBuffer, 1280, 720);
+            win32_window_init_offscreen_buffer(&GlobalBackBuffer, windowWidth, windowHeight);
 
             win32_sound_output_buffer soundOutput = {};
 
@@ -577,13 +582,15 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                     accumulator -= targetSecondsPerTick;
                 }
 
-                game_offscreen_buffer buffer = {};
+                /*game_offscreen_buffer buffer = {};
                 buffer.Width = GlobalBackBuffer.Width;
                 buffer.Height = GlobalBackBuffer.Height;
                 buffer.Pitch = GlobalBackBuffer.Pitch;
                 buffer.Data = GlobalBackBuffer.Data;
 
-                game.Render(&gameMemory, &buffer);
+                game.Render(&gameMemory, &buffer);*/
+
+                win32_opengl_render(deviceContext);
 
                 DWORD playCursor;
                 DWORD writeCursor;
@@ -621,9 +628,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                     win32_audio_fill_sound_buffer(&soundOutput, byteToLock, bytesToWrite, &soundBuffer);
                 }
 
-                win32_window_dimension dimension = win32_window_get_dimension(window);
+               /* win32_window_dimension dimension = win32_window_get_dimension(window);
                 win32_window_update(deviceContext, &GlobalBackBuffer, dimension.Width, 
-                    dimension.Height, 0, 0, dimension.Width, dimension.Height);
+                    dimension.Height, 0, 0, dimension.Width, dimension.Height);*/
 
                 if (frameCounter >= 1)
                 {

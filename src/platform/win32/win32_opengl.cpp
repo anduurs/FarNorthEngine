@@ -1,6 +1,6 @@
 #include "win32_opengl.h"
 
-internal HGLRC win32_opengl_init(HDC deviceContext)
+internal HGLRC win32_opengl_init(HDC deviceContext, int32 viewportX, int32 viewportY, int32 viewportWidth, int32 viewportHeight)
 {
     PIXELFORMATDESCRIPTOR pfd = {};
 
@@ -63,6 +63,8 @@ internal HGLRC win32_opengl_init(HDC deviceContext)
     OutputDebugStringA((char*)glGetString(GL_VERSION));
     OutputDebugStringA("\n");
 
+    glViewport(viewportX, viewportY, viewportWidth, viewportHeight);
+
     return glRenderContext;
 }
 
@@ -70,5 +72,13 @@ internal void win32_opengl_shutdown(HDC deviceContext, HGLRC context)
 {
     wglMakeCurrent(deviceContext, NULL);
     wglDeleteContext(context);
+}
+
+internal void win32_opengl_render(HDC deviceContext)
+{
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    SwapBuffers(deviceContext);
 }
 
