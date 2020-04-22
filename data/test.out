@@ -140,7 +140,7 @@ extern "C" __declspec(dllexport) FN_GAME_OUTPUT_SOUND(fn_game_output_sound)
 
     for (int sampleIndex = 0; sampleIndex < soundBuffer->SampleCount; sampleIndex++)
     {
-        float sineValue = sinf(gameState->tSine);
+        float sineValue = glm::sin(gameState->tSine);
         int16 sampleValue = (int16)(sineValue * toneVolume);
 
         *sampleOut++ = sampleValue;

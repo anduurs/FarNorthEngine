@@ -1,25 +1,4 @@
 #pragma once
 
-#include <math.h>
-
-struct vec2
-{
-    float x;
-    float y;
-};
-
-struct vec3
-{
-    float x;
-    float y;
-    float z;
-};
-
-struct vec4
-{
-    float x;
-    float y;
-    float z;
-    float w;
-};
-
+// TODO(Anders): Replace with custom far north math library in the future
+#include "../dependencies/glm/glm.hpp"
