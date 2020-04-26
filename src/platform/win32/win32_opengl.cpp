@@ -1,6 +1,6 @@
 #include "win32_opengl.h"
 
-internal HGLRC win32_opengl_init(HDC deviceContext, int32 viewportX, int32 viewportY, int32 viewportWidth, int32 viewportHeight)
+internal HGLRC win32_opengl_context_create(HDC deviceContext, int32 viewportX, int32 viewportY, int32 viewportWidth, int32 viewportHeight)
 {
     PIXELFORMATDESCRIPTOR pfd = {};
 
@@ -17,14 +17,14 @@ internal HGLRC win32_opengl_init(HDC deviceContext, int32 viewportX, int32 viewp
     if (pixelFormat == 0) 
     { 
         OutputDebugStringA("Failed to match a pixel format supported by a device context to the given pixel format specification \n");
-        return NULL; 
+        return nullptr; 
     }
 
     BOOL result = SetPixelFormat(deviceContext, pixelFormat, &pfd);
     if (!result)
     {
         OutputDebugStringA("Failed to set the pixel format for the specified device context \n");
-        return NULL;
+        return nullptr;
     }
 
     HGLRC tempContext = wglCreateContext(deviceContext);
@@ -34,7 +34,7 @@ internal HGLRC win32_opengl_init(HDC deviceContext, int32 viewportX, int32 viewp
     if (initalized != GLEW_OK)
     {
         OutputDebugStringA("Failed to initialize GLEW \n");
-        return NULL;
+        return nullptr;
     }
 
     int attribs[] =
@@ -45,7 +45,7 @@ internal HGLRC win32_opengl_init(HDC deviceContext, int32 viewportX, int32 viewp
         0
     };
 
-    HGLRC glRenderContext = NULL;
+    HGLRC glRenderContext = nullptr;
 
     if (wglewIsSupported("WGL_ARB_create_context") == 1)
     {
@@ -68,17 +68,16 @@ internal HGLRC win32_opengl_init(HDC deviceContext, int32 viewportX, int32 viewp
     return glRenderContext;
 }
 
-internal void win32_opengl_shutdown(HDC deviceContext, HGLRC context)
+internal void win32_opengl_context_destroy(HDC deviceContext, HGLRC context)
 {
-    wglMakeCurrent(deviceContext, NULL);
+    wglMakeCurrent(deviceContext, nullptr);
     wglDeleteContext(context);
 }
 
-internal void win32_opengl_render(HDC deviceContext)
+internal void win32_opengl_swap_buffers(HDC deviceContext)
 {
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
     SwapBuffers(deviceContext);
 }
+
+
 

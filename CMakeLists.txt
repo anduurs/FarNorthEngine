@@ -15,14 +15,13 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BuildDir})
 list(APPEND CommonCompilerFlags -nologo -Z7 -MTd -fp:fast -FC -GR- -EHa- -Oi -Od -WX -W4 -wd4100 -wd4189)
 list(APPEND CommonCompilerDefinitions -DDEBUG_BUILD=1 -DPLATFORM_WIN32=1)
 list(APPEND CommonLinkerFlags -incremental:no -opt:ref)
-list(APPEND CommonLinkerLibs user32.lib gdi32.lib opengl32.lib ${DepsDir}/GLEW/lib/glew32s.lib)
+list(APPEND CommonLinkerLibs user32.lib gdi32.lib winmm.lib opengl32.lib ${DepsDir}/GLEW/lib/glew32s.lib)
 
 include_directories(${SourceDir})
 add_compile_options(${CommonCompilerFlags})
 
 add_library(GameLib SHARED ${SourceDir}game/fn_game.cpp)
 set_target_properties(GameLib PROPERTIES OUTPUT_NAME game)
-target_compile_options(GameLib PRIVATE -Fmgame.map)
 target_compile_definitions(GameLib PRIVATE ${CommonCompilerDefinitions})
 target_link_options(GameLib PRIVATE ${CommonLinkerFlags})
 add_custom_command(TARGET GameLib WORKING_DIRECTORY ${BuildDir}
@@ -39,7 +38,6 @@ add_custom_command(TARGET GameLib WORKING_DIRECTORY ${BuildDir}
 
 add_executable(Game WIN32 ${SourceDir}platform/win32/win32_main.cpp)
 set_target_properties(Game PROPERTIES OUTPUT_NAME Win64Game)
-target_compile_options(Game PRIVATE -FmWin64Game.map)
 target_compile_definitions(Game PRIVATE ${CommonCompilerDefinitions})
 target_link_libraries(Game PRIVATE ${CommonLinkerLibs})
 target_link_options(Game PRIVATE ${CommonLinkerFlags})

@@ -3,6 +3,7 @@
 #include "win32_input.cpp"
 #include "win32_audio.cpp"
 #include "win32_opengl.cpp"
+#include "../opengl/opengl_renderer.cpp"
 
 FN_PLATFORM_FILE_WRITE(PlatformWriteFile)
 {
@@ -476,7 +477,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
             HDC deviceContext = GetDC(window);
 
-            HGLRC openglContext = win32_opengl_init(deviceContext, 0, 0, windowWidth, windowHeight);
+            HGLRC openglContext = win32_opengl_context_create(deviceContext, 0, 0, windowWidth, windowHeight);
 
             win32_state win32State = {};
 
@@ -535,6 +536,25 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
             uint32 tickCounter = 0;
 
             GlobalApplicationRunning = true;
+
+            float vertices[] = 
+            {
+                 0.5f,  0.5f, 0.0f,  // top right
+                 0.5f, -0.5f, 0.0f,  // bottom right
+                -0.5f, -0.5f, 0.0f,  // bottom left
+                -0.5f,  0.5f, 0.0f   // top left 
+            };
+
+            unsigned int indices[] = 
+            {
+                0, 1, 3,   // first triangle
+                1, 2, 3    // second triangle
+            };
+
+            uint32 vaoId = opengl_create_vertex_buffer(vertices, indices);
+            platform_file_result vertexShader = PlatformReadFile("C:/dev/FarNorthEngine/data/shaders/test_vertex_shader.vert");
+            platform_file_result fragmentShader = PlatformReadFile("C:/dev/FarNorthEngine/data/shaders/test_fragment_shader.frag");
+            uint32 shaderProgram = opengl_create_shader_program((const char*)vertexShader.Data, (const char*)fragmentShader.Data);
             
             while (GlobalApplicationRunning)
             {
@@ -590,7 +610,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
                 game.Render(&gameMemory, &buffer);*/
 
-                win32_opengl_render(deviceContext);
+                opengl_render(shaderProgram, vaoId);
+                win32_opengl_swap_buffers(deviceContext);
 
                 DWORD playCursor;
                 DWORD writeCursor;
@@ -647,7 +668,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 oldInput = temp;
             }
 
-            win32_opengl_shutdown(deviceContext, openglContext);
+            win32_opengl_context_destroy(deviceContext, openglContext);
         }
     }
     
