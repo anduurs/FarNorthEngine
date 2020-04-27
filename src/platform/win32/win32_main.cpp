@@ -551,7 +551,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 1, 2, 3    // second triangle
             };
 
-            uint32 vaoId = opengl_create_vertex_buffer(vertices, indices);
+            uint32 vaoId = opengl_create_vertex_buffer(vertices, array_length(vertices), indices, array_length(indices));
             platform_file_result vertexShader = PlatformReadFile("C:/dev/FarNorthEngine/data/shaders/test_vertex_shader.vert");
             platform_file_result fragmentShader = PlatformReadFile("C:/dev/FarNorthEngine/data/shaders/test_fragment_shader.frag");
             uint32 shaderProgram = opengl_create_shader_program((const char*)vertexShader.Data, (const char*)fragmentShader.Data);
