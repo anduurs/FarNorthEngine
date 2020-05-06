@@ -38,17 +38,47 @@ internal void renderer_draw_quad(game_offscreen_buffer* buffer,
     }
 }
 
+internal void fn_mem_arena_init(memory_arena* arena, size_t size, uint8* base)
+{
+    arena->Size = size;
+    arena->Base = base;
+    arena->Used = 0;
+}
+
+#define fn_mem_arena_reserve(arena, type) (type*)fn_mem_arena_reserve_(arena, sizeof(type))
+#define fn_mem_arena_reserve_array(arena, count, type) (type*)fn_mem_arena_reserve_(arena, count * sizeof(type))
+internal void* fn_mem_arena_reserve_(memory_arena* arena, size_t size)
+{
+    assert((arena->Used + size) <= arena->Size);
+
+    void* memory = arena->Base + arena->Used;
+    arena->Used += size;
+
+    return memory;
+}
+
 extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
 {
-    assert(sizeof(game_state) <= memory->PermanentStorageSize);
+    assert(sizeof(game_state) <= memory->PersistentStorageSize);
 
-    game_state* gameState = (game_state*)memory->PermanentStorage;
+    game_state* gameState = (game_state*)memory->PersistentStorage;
 
     gameState->PlayerX = 1280/2;
     gameState->PlayerY = 720/2;
 
     gameState->PlayerVelocityX = 0.0f;
     gameState->PlayerVelocityY = 0.0f;
+
+    fn_mem_arena_init(
+        &gameState->WorldMemoryArena, 
+        memory->PersistentStorageSize - sizeof(game_state), 
+        (uint8*)memory->PersistentStorage + sizeof(game_state)
+    );
+
+    gameState->GameWorld = fn_mem_arena_reserve(&gameState->WorldMemoryArena, world);
+    world* gameWorld = gameState->GameWorld;
+    gameWorld->Chunks = fn_mem_arena_reserve(&gameState->WorldMemoryArena, world_chunk);
+    world_chunk* chunks = gameWorld->Chunks;
 
     const char* fileName = __FILE__;
     platform_file_result file = memory->PlatformReadFile(fileName);
@@ -65,9 +95,9 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
 
 extern "C" __declspec(dllexport) FN_GAME_PROCESS_INPUT(fn_game_process_input)
 {
-    assert(sizeof(game_state) <= memory->PermanentStorageSize);
+    assert(sizeof(game_state) <= memory->PersistentStorageSize);
 
-    game_state* gameState = (game_state*)memory->PermanentStorage;
+    game_state* gameState = (game_state*)memory->PersistentStorage;
 
     game_controller_input* gamepad = &input->Gamepads[0];
 
@@ -108,9 +138,9 @@ extern "C" __declspec(dllexport) FN_GAME_PROCESS_INPUT(fn_game_process_input)
 
 extern "C" __declspec(dllexport) FN_GAME_TICK(fn_game_tick)
 {
-    assert(sizeof(game_state) <= memory->PermanentStorageSize);
+    assert(sizeof(game_state) <= memory->PersistentStorageSize);
 
-    game_state* gameState = (game_state*)memory->PermanentStorage;
+    game_state* gameState = (game_state*)memory->PersistentStorage;
 
     gameState->PlayerX += gameState->PlayerVelocityX;
     gameState->PlayerY += gameState->PlayerVelocityY;
@@ -118,9 +148,9 @@ extern "C" __declspec(dllexport) FN_GAME_TICK(fn_game_tick)
 
 extern "C" __declspec(dllexport) FN_GAME_RENDER(fn_game_render)
 {
-    assert(sizeof(game_state) <= memory->PermanentStorageSize);
+    assert(sizeof(game_state) <= memory->PersistentStorageSize);
 
-    game_state* gameState = (game_state*)memory->PermanentStorage;
+    game_state* gameState = (game_state*)memory->PersistentStorage;
 
     renderer_clear_screen(buffer, 0x00, 0x00, 0x00);
     renderer_draw_quad(buffer, (int32)gameState->PlayerX, (int32)gameState->PlayerY, 25, 25, 0xFF, 0xFF, 0x00);
@@ -128,9 +158,9 @@ extern "C" __declspec(dllexport) FN_GAME_RENDER(fn_game_render)
 
 extern "C" __declspec(dllexport) FN_GAME_OUTPUT_SOUND(fn_game_output_sound)
 {
-    assert(sizeof(game_state) <= memory->PermanentStorageSize);
+    assert(sizeof(game_state) <= memory->PersistentStorageSize);
 
-    game_state* gameState = (game_state*)memory->PermanentStorage;
+    game_state* gameState = (game_state*)memory->PersistentStorage;
 
     int16 toneVolume = 1000;
     int32 toneHz = 256;

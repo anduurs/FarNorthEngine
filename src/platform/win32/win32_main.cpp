@@ -483,14 +483,16 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
             game_memory gameMemory = {};
 
-            gameMemory.PermanentStorageSize = Megabytes(64);
+            gameMemory.PersistentStorageSize = Megabytes(64);
+            gameMemory.TemporaryStorageSize = Megabytes(32);
             gameMemory.TransientStorageSize = Gigabytes((uint64)1);
 
-            uint64 totalSize = gameMemory.PermanentStorageSize + gameMemory.TransientStorageSize;
+            uint64 totalSize = gameMemory.PersistentStorageSize + gameMemory.TemporaryStorageSize + gameMemory.TransientStorageSize;
             win32State.TotalGameMemorySize = totalSize;
             win32State.GameMemoryBlock = VirtualAlloc(0, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-            gameMemory.PermanentStorage = win32State.GameMemoryBlock;
-            gameMemory.TransientStorage = (uint64*)gameMemory.PermanentStorage + gameMemory.PermanentStorageSize;
+            gameMemory.PersistentStorage = win32State.GameMemoryBlock;
+            gameMemory.TemporaryStorage = (uint64*)gameMemory.PersistentStorage + gameMemory.PersistentStorageSize;
+            gameMemory.TransientStorage = (uint64*)gameMemory.PersistentStorage + gameMemory.PersistentStorageSize + gameMemory.TemporaryStorageSize;
 
             gameMemory.PlatformWriteFile = PlatformWriteFile;
             gameMemory.PlatformFreeFile = PlatformFreeFile;
@@ -545,15 +547,15 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 -0.5f,  0.5f, 0.0f   // top left 
             };
 
-            unsigned int indices[] = 
+            uint32 indices[] = 
             {
-                0, 1, 3,   // first triangle
-                1, 2, 3    // second triangle
+                0, 1, 3, 
+                1, 2, 3 
             };
 
             uint32 vaoId = opengl_create_vertex_buffer(vertices, array_length(vertices), indices, array_length(indices));
-            platform_file_result vertexShader = PlatformReadFile("C:/dev/FarNorthEngine/data/shaders/test_vertex_shader.vert");
-            platform_file_result fragmentShader = PlatformReadFile("C:/dev/FarNorthEngine/data/shaders/test_fragment_shader.frag");
+            platform_file_result vertexShader = PlatformReadFile("C:/Users/anduu/Documents/Github/FarNorthEngine/data/shaders/test_vertex_shader.vert");
+            platform_file_result fragmentShader = PlatformReadFile("C:/Users/anduu/Documents/Github/FarNorthEngine/data/shaders/test_fragment_shader.frag");
             uint32 shaderProgram = opengl_create_shader_program((const char*)vertexShader.Data, (const char*)fragmentShader.Data);
             
             while (GlobalApplicationRunning)

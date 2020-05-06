@@ -41,12 +41,22 @@ struct game_sound_output_buffer
     int16* Samples;
 };
 
+struct memory_arena
+{
+    size_t Size;
+    uint8* Base;
+    size_t Used;
+};
+
 struct game_memory
 {
     bool IsInitialized;
 
-    uint64 PermanentStorageSize;
-    void* PermanentStorage;
+    uint64 PersistentStorageSize;
+    void* PersistentStorage;
+
+    uint64 TemporaryStorageSize;
+    void* TemporaryStorage;
 
     uint64 TransientStorageSize;
     void* TransientStorage;
@@ -123,6 +133,32 @@ struct game_input
     game_mouse_input Mouse;
 };
 
+struct player
+{
+    glm::vec2 Position;
+    glm::vec2 Velocity;
+};
+
+struct entity
+{
+    glm::vec2 Position;
+};
+
+struct world_chunk
+{
+    uint16 ChunkX;
+    uint16 ChunkY;
+    uint8 ChunkSize;
+
+    uint8* TileIds;
+};
+
+struct world
+{
+    uint16 ChunkDimension;
+    world_chunk* Chunks;
+};
+
 struct game_state
 {
     float PlayerX;
@@ -132,6 +168,9 @@ struct game_state
     float PlayerVelocityY;
 
     float tSine;
+
+    memory_arena WorldMemoryArena;
+    world* GameWorld;
 };
 
 // Services that the game provides to the platform layer
