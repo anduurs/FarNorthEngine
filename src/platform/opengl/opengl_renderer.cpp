@@ -1,6 +1,6 @@
 #include "opengl_renderer.h"
 
-internal uint32 opengl_create_vertex_buffer(const float* vertices, uint32 numOfVertices, const uint32* indices, uint32 numOfIndices)
+internal uint32 opengl_create_vertex_buffer(const float* vertices, uint32 vertexCount, const uint32* indices, uint32 indicesCount)
 {
     uint32 vaoId;
     glGenVertexArrays(1, &vaoId);
@@ -14,10 +14,10 @@ internal uint32 opengl_create_vertex_buffer(const float* vertices, uint32 numOfV
 
     glBindBuffer(GL_ARRAY_BUFFER, vboId);
  
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * numOfVertices, vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertexCount, vertices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboId);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32) * numOfIndices, indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32) * indicesCount, indices, GL_STATIC_DRAW);
     
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
