@@ -1,12 +1,11 @@
 #pragma once
 
+#include <cstring>
 #include <stdint.h>
 
-#define Kilobytes(Value) ((Value)*1024LL)
-#define Megabytes(Value) ((Kilobytes(Value))*1024LL)
-#define Gigabytes(Value) ((Megabytes(Value))*1024LL)
-
-#define PI 3.14159265359f
+#define kilobytes(Value) ((Value)*1024LL)
+#define megabytes(Value) ((kilobytes(Value))*1024LL)
+#define gigabytes(Value) ((megabytes(Value))*1024LL)
 
 #define internal static
 #define local_persist static

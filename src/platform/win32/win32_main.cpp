@@ -3,7 +3,6 @@
 #include "win32_input.cpp"
 #include "win32_audio.cpp"
 #include "win32_opengl.cpp"
-#include "../opengl/opengl_renderer.cpp"
 
 FN_PLATFORM_FILE_WRITE(PlatformWriteFile)
 {
@@ -483,9 +482,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
             game_memory gameMemory = {};
 
-            gameMemory.PersistentStorageSize = Megabytes(64);
-            gameMemory.TemporaryStorageSize = Megabytes(32);
-            gameMemory.TransientStorageSize = Gigabytes((uint64)1);
+            gameMemory.PersistentStorageSize = megabytes(128);
+            gameMemory.TemporaryStorageSize = megabytes(64);
+            gameMemory.TransientStorageSize = gigabytes((uint64)1);
 
             uint64 totalSize = gameMemory.PersistentStorageSize + gameMemory.TemporaryStorageSize + gameMemory.TransientStorageSize;
             win32State.TotalGameMemorySize = totalSize;
@@ -498,6 +497,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
             gameMemory.PlatformFreeFile = PlatformFreeFile;
             gameMemory.PlatformReadFile = PlatformReadFile;
             gameMemory.PlatformDebugLog = PlatformDebugLog;
+            gameMemory.WindowWidth = windowWidth;
+            gameMemory.WindowHeight = windowHeight;
 
             win32_input_load_xinput();
             win32_window_init_offscreen_buffer(&GlobalBackBuffer, windowWidth, windowHeight);
@@ -539,25 +540,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
             GlobalApplicationRunning = true;
 
-            float vertices[] = 
-            {
-                 0.5f,  0.5f, 0.0f,  // top right
-                 0.5f, -0.5f, 0.0f,  // bottom right
-                -0.5f, -0.5f, 0.0f,  // bottom left
-                -0.5f,  0.5f, 0.0f   // top left 
-            };
-
-            uint32 indices[] = 
-            {
-                0, 1, 3, 
-                1, 2, 3 
-            };
-
-            uint32 vaoId = opengl_create_vertex_buffer(vertices, array_length(vertices), indices, array_length(indices));
-            platform_file_result vertexShader = PlatformReadFile("C:/Users/anduu/Documents/Github/FarNorthEngine/data/shaders/test_vertex_shader.vert");
-            platform_file_result fragmentShader = PlatformReadFile("C:/Users/anduu/Documents/Github/FarNorthEngine/data/shaders/test_fragment_shader.frag");
-            uint32 shaderProgram = opengl_create_shader_program((const char*)vertexShader.Data, (const char*)fragmentShader.Data);
-            
             while (GlobalApplicationRunning)
             {
                 FILETIME newDLLWriteTime = win32_get_last_write_time(sourceGameCodeDLLFullPath);
@@ -604,15 +586,14 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                     accumulator -= targetSecondsPerTick;
                 }
 
-                /*game_offscreen_buffer buffer = {};
+                game_offscreen_buffer buffer = {};
                 buffer.Width = GlobalBackBuffer.Width;
                 buffer.Height = GlobalBackBuffer.Height;
                 buffer.Pitch = GlobalBackBuffer.Pitch;
                 buffer.Data = GlobalBackBuffer.Data;
 
-                game.Render(&gameMemory, &buffer);*/
+                game.Render(&gameMemory, &buffer);
 
-                opengl_render(shaderProgram, vaoId);
                 win32_opengl_swap_buffers(deviceContext);
 
                 DWORD playCursor;

@@ -65,6 +65,9 @@ struct game_memory
     platform_file_read* PlatformReadFile;
     platform_file_free* PlatformFreeFile;
     platform_debug_log* PlatformDebugLog;
+
+    uint32 WindowWidth;
+    uint32 WindowHeight;
 };
 
 struct game_button_state
@@ -135,16 +138,53 @@ struct game_input
 
 struct player
 {
-    glm::vec2 Position;
-    glm::vec2 Velocity;
+    vec2 Position;
+    vec2 Velocity;
 };
 
-struct entity
+struct fn_transform
 {
-    glm::vec2 Position;
+    vec3 Position;
+    quaternion Rotation;
+    vec3 Scale;
 };
 
-struct world_chunk
+struct fn_mesh
+{
+    uint32 Id;
+
+    uint32 VertexCount;
+    float* Vertices;
+
+    uint32 IndicesCount;
+    uint32* Indices;
+};
+
+struct fn_shader
+{
+    uint32 Id;
+};
+
+struct fn_camera
+{
+    float FieldOfView;
+    float zNear;
+    float zFar;
+
+    vec3 Position;
+    quaternion Rotation;
+
+    mat4 ProjectionMatrix;
+};
+
+struct fn_entity
+{
+    fn_transform Transform;
+    fn_mesh Mesh;
+    fn_shader Shader;
+};
+
+struct fn_world_chunk
 {
     uint16 ChunkX;
     uint16 ChunkY;
@@ -153,10 +193,11 @@ struct world_chunk
     uint8* TileIds;
 };
 
-struct world
+struct fn_world
 {
     uint16 ChunkDimension;
-    world_chunk* Chunks;
+    fn_world_chunk* Chunks;
+    fn_entity* Entities;
 };
 
 struct game_state
@@ -169,8 +210,10 @@ struct game_state
 
     float tSine;
 
-    memory_arena WorldMemoryArena;
-    world* GameWorld;
+    fn_camera Camera;
+
+    memory_arena WorldArena;
+    fn_world* GameWorld;
 };
 
 // Services that the game provides to the platform layer

@@ -18,14 +18,12 @@ set DebugCompilerDefinitions=-DDEBUG_BUILD=1 -DPLATFORM_WIN32=1
 set ReleaseCompilerFlags=-Ox
 set ReleaseCompilerDefinitions=-DDEBUG_BUILD=0 -DPLATFORM_WIN32=1 
 
-set SharedLib=-LD
-
 REM 64-bit Debug build
 if not exist .\build\debug\x64 mkdir .\build\debug\x64
 pushd .\build\debug\x64
 del *.pdb > NUL 2> NUL
 REM compile the game specific code as a DLL
-cl %DebugCompilerDefinitions% %DebugCompilerFlags% %CommonCompilerFlags% -Fegame ..\..\..\src\game\fn_game.cpp %SharedLib% /link -PDB:game_%RANDOM%.pdb %CommonLinkerFlags%
+cl %DebugCompilerDefinitions% %DebugCompilerFlags% %CommonCompilerFlags% -Fegame ..\..\..\src\game\fn_game.cpp -LD /link -PDB:game_%RANDOM%.pdb %CommonLinkerFlags%
 REM compile the platform specific code as an EXE
 cl %DebugCompilerDefinitions% %DebugCompilerFlags% %CommonCompilerFlags% -FeWin64Game ..\..\..\src\platform\win32\win32_main.cpp /link %CommonLinkerFlags% %PlatformLinkerLibs%
 popd
