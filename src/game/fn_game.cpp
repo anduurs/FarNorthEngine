@@ -49,14 +49,33 @@ internal void fn_mem_arena_init(memory_arena* arena, size_t size, uint8* base)
 
 #define fn_mem_arena_reserve(arena, type) (type*)fn_mem_arena_reserve_(arena, sizeof(type))
 #define fn_mem_arena_reserve_array(arena, count, type) (type*)fn_mem_arena_reserve_(arena, count * sizeof(type))
-internal void* fn_mem_arena_reserve_(memory_arena* arena, size_t size)
+internal void* fn_mem_arena_reserve_(memory_arena* arena, size_t size, uint32 alignment = 4)
 {
     assert((arena->Used + size) <= arena->Size);
+    // @TODO(Anders): assert that the alignment is power of 2
 
     void* memory = arena->Base + arena->Used;
     arena->Used += size;
 
     return memory;
+}
+
+internal void fn_initalize_camera(fn_camera* camera, uint32 windowWidth, uint32 windowHeight)
+{
+    camera->FieldOfView = 70.0f;
+    camera->zNear = 0.1f;
+    camera->zFar = 130.0f;
+    camera->Position = vec3{ 0.0f, 0.0f, 0.0f };
+    camera->Rotation = fn_math_quat_angle_axis(0.0f, vec3{ 0.0f, 0.0f, 0.0f });
+
+    float aspectRatio = (float)windowWidth / (float)windowHeight;
+
+    camera->ProjectionMatrix = fn_math_mat4_perspective(
+        camera->FieldOfView,
+        aspectRatio,
+        camera->zNear,
+        camera->zFar
+    );
 }
 
 extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
@@ -65,27 +84,8 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
 
     game_state* gameState = (game_state*)memory->PersistentStorage;
 
-    gameState->PlayerX = 1280/2;
-    gameState->PlayerY = 720/2;
-
-    gameState->PlayerVelocityX = 0.0f;
-    gameState->PlayerVelocityY = 0.0f;
-
     fn_camera* camera = &gameState->Camera;
-    camera->FieldOfView = 70.0f;
-    camera->zNear = 0.1f;
-    camera->zFar = 130.0f;
-    camera->Position = vec3{ 0.0f, 0.0f, 0.0f };
-    camera->Rotation = fn_math_quat_angle_axis(90.0f, vec3{ 1.0f, 0.0f, 0.0f });
-
-    float aspectRatio = (float)memory->WindowWidth / (float)memory->WindowHeight;
-
-    camera->ProjectionMatrix = fn_math_mat4_perspective(
-        camera->FieldOfView, 
-        aspectRatio,
-        camera->zNear, 
-        camera->zFar
-    );
+    fn_initalize_camera(camera, memory->WindowWidth, memory->WindowHeight);
 
     fn_mem_arena_init(
         &gameState->WorldArena, 
@@ -98,13 +98,15 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
     gameWorld->Chunks = fn_mem_arena_reserve(&gameState->WorldArena, fn_world_chunk);
     fn_world_chunk* chunks = gameWorld->Chunks;
 
+    //world gen here
+
     gameWorld->Entities = fn_mem_arena_reserve_array(&gameState->WorldArena, 100, fn_entity);
 
     fn_entity* entities = gameWorld->Entities;
 
     fn_transform transform = {};
-    transform.Position = vec3{ 0.0f, 0.0f, -20.0f };
-    transform.Rotation = fn_math_quat_angle_axis(0.0f, vec3{ 1.0f, 0, 0 });
+    transform.Position = vec3{ 0.0f, 0.0f, -8.0f };
+    transform.Rotation = fn_math_quat_angle_axis(0.0f, vec3{ 0.0f, 0.0f, 0.0f });
     transform.Scale = vec3{ 1.0f, 1.0f, 1.0f };
 
     float vertices[] =
@@ -161,20 +163,20 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
 
     memory->PlatformFreeFile(vertexShader.Data);
     memory->PlatformFreeFile(fragmentShader.Data);
+
+    fn_texture diffuseMap = opengl_create_texture("C:/dev/FarNorthEngine/data/textures/container.png");
+
+    glUseProgram(shader.Id);
+    glUniform1i(glGetUniformLocation(shader.Id, "diffuseMap"), 0);
+    glUseProgram(0);
+
+    fn_material material = {};
+    material.Shader = shader;
+    material.DiffuseMap = diffuseMap;
     
     entities->Transform = transform;
     entities->Mesh = mesh;
-    entities->Shader = shader;
-
-    const char* fileName = __FILE__;
-    platform_file_result file = memory->PlatformReadFile(fileName);
-
-    if (file.Data)
-    {
-        memory->PlatformDebugLog("Writing file\n");
-        memory->PlatformWriteFile("C:/dev/FarNorthEngine/data/test.out", file.FileSize, file.Data);
-        memory->PlatformFreeFile(file.Data);
-    }
+    entities->Material = material;
     
     memory->IsInitialized = true;
 }
@@ -197,28 +199,33 @@ extern "C" __declspec(dllexport) FN_GAME_PROCESS_INPUT(fn_game_process_input)
     else
     {
         game_keyboard_input* keyboard = &input->Keyboard;
+        game_mouse_input* mouse = &input->Mouse;
 
-        float speed = 5.0f;
+        fn_camera* camera = &gameState->Camera;
 
         if (keyboard->KeyCode == FN_KEY_W)
         {
-            gameState->PlayerVelocityY = keyboard->Pressed ? -speed : 0;
+            camera->MoveForward = keyboard->Pressed;
         }
-
-        if (keyboard->KeyCode == FN_KEY_S)
+        else if (keyboard->KeyCode == FN_KEY_S)
         {
-            gameState->PlayerVelocityY = keyboard->Pressed ? speed : 0;
+            camera->MoveBack = keyboard->Pressed;
         }
 
         if (keyboard->KeyCode == FN_KEY_A)
         {
-            gameState->PlayerVelocityX = keyboard->Pressed ? -speed : 0;
+            camera->MoveLeft = keyboard->Pressed;
+        }
+        else  if (keyboard->KeyCode == FN_KEY_D)
+        {
+            camera->MoveRight = keyboard->Pressed;
         }
 
-        if (keyboard->KeyCode == FN_KEY_D)
-        {
-            gameState->PlayerVelocityX = keyboard->Pressed ? speed : 0;
-        }
+        if (camera->CurrentMouseX != mouse->MouseCursorX)
+            camera->CurrentMouseX = mouse->MouseCursorX;
+
+        if (camera->CurrentMouseY != mouse->MouseCursorY)
+            camera->CurrentMouseY = mouse->MouseCursorY;
     }
 }
 
@@ -228,8 +235,66 @@ extern "C" __declspec(dllexport) FN_GAME_TICK(fn_game_tick)
 
     game_state* gameState = (game_state*)memory->PersistentStorage;
 
-    gameState->PlayerX += gameState->PlayerVelocityX;
-    gameState->PlayerY += gameState->PlayerVelocityY;
+    fn_entity* entity = gameState->GameWorld->Entities;
+
+    entity->Transform.Rotation = fn_math_quat_rotate(dt * 15.0f, vec3{ 0, 1.0f, 0 }, entity->Transform.Rotation);
+
+    fn_camera* camera = &gameState->Camera;
+    float speed = 25.0f;
+
+    if (camera->MoveForward)
+    {
+        vec3 forward = fn_math_quat_forward(camera->Rotation);
+        camera->Position = fn_math_vec3_move_in_direction(camera->Position, forward, -dt * speed);
+    }
+    else if (camera->MoveBack)
+    {
+        vec3 forward = fn_math_quat_forward(camera->Rotation);
+        camera->Position = fn_math_vec3_move_in_direction(camera->Position, forward, dt * speed);
+    }
+
+    if (camera->MoveRight)
+    {
+        vec3 right = fn_math_quat_right(camera->Rotation);
+        camera->Position = fn_math_vec3_move_in_direction(camera->Position, right, dt * speed);
+    }
+    else if (camera->MoveLeft)
+    {
+        vec3 right = fn_math_quat_right(camera->Rotation);
+        camera->Position = fn_math_vec3_move_in_direction(camera->Position, right, -dt * speed);
+    }
+
+    /*float currentMouseX = camera->CurrentMouseX;
+    float currentMouseY = camera->CurrentMouseY;
+
+    float previousMouseX = camera->PreviousMouseX;
+    float previousMouseY = camera->PreviousMouseY;
+
+    bool shouldRotateAroundX = currentMouseY != previousMouseY;
+    bool shouldRotateAroundY = currentMouseX != previousMouseX;
+
+    if (shouldRotateAroundX)
+    {
+        float deltaMouseY = currentMouseY - previousMouseY;
+        float pitchChange = deltaMouseY * 10.0f * dt;
+        vec3 right = fn_math_quat_right(camera->Rotation);
+        quaternion targetRotation = fn_math_quat_angle_axis(pitchChange, right);
+        camera->Rotation = fn_math_quat_mul(targetRotation, camera->Rotation);
+        fn_math_quat_normalize(&camera->Rotation);
+    }
+
+    if (shouldRotateAroundY)
+    {
+        float deltaMouseX = currentMouseX - previousMouseX;
+        float yawChange = deltaMouseX * 10.0f * dt;
+        vec3 yAxis = {0, 1, 0};
+        quaternion targetRotation = fn_math_quat_angle_axis(yawChange, yAxis);
+        camera->Rotation = fn_math_quat_mul(targetRotation, camera->Rotation);
+        fn_math_quat_normalize(&camera->Rotation);
+    }
+
+    camera->PreviousMouseX = currentMouseX;
+    camera->PreviousMouseY = currentMouseY;*/
 }
 
 extern "C" __declspec(dllexport) FN_GAME_RENDER(fn_game_render)
@@ -242,7 +307,6 @@ extern "C" __declspec(dllexport) FN_GAME_RENDER(fn_game_render)
     fn_entity* entity = gameWorld->Entities;
     fn_camera* camera = &gameState->Camera;
 
-    //opengl_render(entity->Shader.Id, entity->Mesh.Id);
     opengl_render_frame(camera, entity, 1);
 
     //renderer_clear_screen(buffer, 0x00, 0x00, 0x00);
@@ -255,7 +319,7 @@ extern "C" __declspec(dllexport) FN_GAME_OUTPUT_SOUND(fn_game_output_sound)
 
     game_state* gameState = (game_state*)memory->PersistentStorage;
 
-    int16 toneVolume = 1000;
+    int16 toneVolume = 0;
     int32 toneHz = 256;
     int wavePeriod = soundBuffer->SamplesPerSecond / toneHz;
 

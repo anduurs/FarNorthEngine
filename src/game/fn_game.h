@@ -126,7 +126,11 @@ struct game_keyboard_input
 
 struct game_mouse_input
 {
+    float MouseCursorX;
+    float MouseCursorY;
 
+    bool LeftMouseButtonPressed;
+    bool RightMouseButtonPressed;
 };
 
 struct game_input
@@ -165,6 +169,17 @@ struct fn_shader
     uint32 Id;
 };
 
+struct fn_texture
+{
+    uint32 Id;
+};
+
+struct fn_material
+{
+    fn_shader Shader;
+    fn_texture DiffuseMap;
+};
+
 struct fn_camera
 {
     float FieldOfView;
@@ -175,13 +190,23 @@ struct fn_camera
     quaternion Rotation;
 
     mat4 ProjectionMatrix;
+
+    bool MoveForward;
+    bool MoveBack;
+    bool MoveRight;
+    bool MoveLeft;
+
+    float CurrentMouseX;
+    float CurrentMouseY;
+    float PreviousMouseX;
+    float PreviousMouseY;
 };
 
 struct fn_entity
 {
     fn_transform Transform;
     fn_mesh Mesh;
-    fn_shader Shader;
+    fn_material Material;
 };
 
 struct fn_world_chunk
@@ -202,12 +227,6 @@ struct fn_world
 
 struct game_state
 {
-    float PlayerX;
-    float PlayerY;
-
-    float PlayerVelocityX;
-    float PlayerVelocityY;
-
     float tSine;
 
     fn_camera Camera;

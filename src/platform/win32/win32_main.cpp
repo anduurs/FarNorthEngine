@@ -125,6 +125,36 @@ internal void win32_window_init_offscreen_buffer(win32_offscreen_buffer* buffer,
 //                  DIB_RGB_COLORS, SRCCOPY);
 //}
 
+//internal void win32_clip_mouse_to_window(HWND window)
+//{
+//    RECT rect;
+//    GetClientRect(window, &rect);
+//
+//    POINT ul;
+//    ul.x = rect.left;
+//    ul.y = rect.top;
+//
+//    POINT lr;
+//    lr.x = rect.right;
+//    lr.y = rect.bottom;
+//
+//    MapWindowPoints(window, nullptr, &ul, 1);
+//    MapWindowPoints(window, nullptr, &lr, 1);
+//
+//    rect.left = ul.x;
+//    rect.top = ul.y;
+//
+//    rect.right = lr.x;
+//    rect.bottom = lr.y;
+//
+//    ClipCursor(&rect);
+//}
+//
+//internal void win32_free_mouse()
+//{
+//    ClipCursor(nullptr);
+//}
+
 internal LRESULT CALLBACK win32_window_callback(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
     LRESULT result = 0;
@@ -151,6 +181,18 @@ internal LRESULT CALLBACK win32_window_callback(HWND window, UINT message, WPARA
         {
             OutputDebugStringA("WM_DESTROY\n");
             PostQuitMessage(0);
+        } break;
+
+        case WM_SETFOCUS:
+        {
+            /*win32_clip_mouse_to_window(window);
+            ShowCursor(false);*/
+        } break;
+
+        case WM_KILLFOCUS:
+        {
+            /*win32_free_mouse();
+            ShowCursor(true);*/
         } break;
         
         //case WM_PAINT:
@@ -248,7 +290,7 @@ internal void win32_play_back_input(win32_state* win32State, game_input* input)
     }
 }
 
-internal void win32_process_messages(win32_state* win32State, game_input* input)
+internal void win32_process_messages(HWND window, win32_state* win32State, game_input* input)
 {
     MSG message;
                 
@@ -259,6 +301,19 @@ internal void win32_process_messages(win32_state* win32State, game_input* input)
             case WM_QUIT:
             {
                 GlobalApplicationRunning = false;       
+            } break;
+
+            case WM_MOUSEMOVE:
+            {
+                POINT mousePosition;
+                GetCursorPos(&mousePosition);
+                ScreenToClient(window, &mousePosition);
+
+                input->Mouse.MouseCursorX = (float)mousePosition.x;
+                input->Mouse.MouseCursorY = (float)mousePosition.y;
+                //char printBuffer[256];
+                //sprintf_s(printBuffer, "%f %f \n", (float)mousePosition.x, (float)mousePosition.y);
+                //OutputDebugStringA(printBuffer);
             } break;
 
             case WM_SYSKEYDOWN:            
@@ -380,6 +435,7 @@ internal void win32_unload_game_code(win32_game_code* gameCode)
     gameCode->OutputSound = fn_game_output_sound_stub;
 }
 
+// @TODO(Anders): move to a custom string lib
 internal void fn_str_concat(
     size_t sourceACount, char* sourceA, 
     size_t sourceBCount, char* sourceB, 
@@ -454,8 +510,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
     {
         const char* applicationName = "Far North Engine v0.01";
 
-        int32 windowWidth = 800;
-        int32 windowHeight = 600;
+        int32 windowWidth = 1280;
+        int32 windowHeight = 720;
         
         HWND window = CreateWindowEx(0,
                                      windowClass.lpszClassName,
@@ -550,7 +606,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                     game = win32_load_game_code(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath, DLLWriteTime);
                 }
 
-                win32_process_messages(&win32State, newInput);
+                win32_process_messages(window, &win32State, newInput);
                 win32_input_poll_gamepad(oldInput, newInput);
 
                 if (win32State.InputRecordingIndex)

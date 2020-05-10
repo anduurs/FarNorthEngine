@@ -33,6 +33,12 @@ add_custom_command(TARGET GameLib WORKING_DIRECTORY ${BuildDir}
 		COMMAND ${CMAKE_COMMAND} -E make_directory ${DataDir}
 		COMMAND del ARGS game_*.pdb 
 )
+if(FALSE)
+add_custom_command(TARGET GameLib WORKING_DIRECTORY ${BuildDir}
+    POST_BUILD 
+        COMMAND ren ARGS game.pdb game_%random%.pdb 
+)
+endif()
 
 add_executable(Game WIN32 ${SourceDir}platform/win32/win32_main.cpp)
 set_target_properties(Game PROPERTIES OUTPUT_NAME Win64Game)
