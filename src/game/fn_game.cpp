@@ -74,9 +74,9 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
     fn_camera* camera = &gameState->Camera;
     camera->FieldOfView = 70.0f;
     camera->zNear = 0.1f;
-    camera->zFar = 10000.0f;
-    camera->Position = vec3{ 0.0f, 5.0f, 0.0f };
-    camera->Rotation = fn_math_quat_angle_axis(-10.0f, vec3{ 1.0f, 0, 0 });
+    camera->zFar = 130.0f;
+    camera->Position = vec3{ 0.0f, 0.0f, 0.0f };
+    camera->Rotation = fn_math_quat_angle_axis(90.0f, vec3{ 1.0f, 0.0f, 0.0f });
 
     float aspectRatio = (float)memory->WindowWidth / (float)memory->WindowHeight;
 
@@ -104,21 +104,43 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
 
     fn_transform transform = {};
     transform.Position = vec3{ 0.0f, 0.0f, -20.0f };
-    transform.Rotation = quaternion{ 0.0f, 0.0f, 0.0f, 1.0f };
+    transform.Rotation = fn_math_quat_angle_axis(0.0f, vec3{ 1.0f, 0, 0 });
     transform.Scale = vec3{ 1.0f, 1.0f, 1.0f };
 
     float vertices[] =
     {
-         0.5f,  0.5f, 0.0f,  // top right
-         0.5f, -0.5f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f,  // bottom left
-        -0.5f,  0.5f, 0.0f   // top left 
+        // front
+        -1.0, -1.0,  1.0,
+         1.0, -1.0,  1.0,
+         1.0,  1.0,  1.0,
+        -1.0,  1.0,  1.0,
+        // back
+        -1.0, -1.0, -1.0,
+         1.0, -1.0, -1.0,
+         1.0,  1.0, -1.0,
+        -1.0,  1.0, -1.0
     };
 
-    uint32 indices[] =
+    uint16 indices[] =
     {
-        0, 1, 3,
-        1, 2, 3
+        // front
+        0, 1, 2,
+        2, 3, 0,
+        // right
+        1, 5, 6,
+        6, 2, 1,
+        // back
+        7, 6, 5,
+        5, 4, 7,
+        // left
+        4, 0, 3,
+        3, 7, 4,
+        // bottom
+        4, 5, 1,
+        1, 0, 4,
+        // top
+        3, 2, 6,
+        6, 7, 3
     };
 
     fn_mesh mesh = {};
@@ -136,6 +158,9 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
 
     fn_shader shader = {};
     shader.Id = opengl_create_shader_program((const char*)vertexShader.Data, (const char*)fragmentShader.Data);
+
+    memory->PlatformFreeFile(vertexShader.Data);
+    memory->PlatformFreeFile(fragmentShader.Data);
     
     entities->Transform = transform;
     entities->Mesh = mesh;

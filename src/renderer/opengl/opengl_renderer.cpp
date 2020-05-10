@@ -10,7 +10,7 @@ internal void opengl_initalize()
     glCullFace(GL_FRONT);
 }
 
-internal uint32 opengl_create_vertex_buffer(const float* vertices, uint32 vertexCount, const uint32* indices, uint32 indicesCount)
+internal uint32 opengl_create_vertex_buffer(const float* vertices, uint32 vertexCount, const uint16* indices, uint32 indicesCount)
 {
     uint32 vaoId;
     glGenVertexArrays(1, &vaoId);
@@ -27,7 +27,7 @@ internal uint32 opengl_create_vertex_buffer(const float* vertices, uint32 vertex
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertexCount, vertices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboId);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32) * indicesCount, indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint16) * indicesCount, indices, GL_STATIC_DRAW);
     
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -81,7 +81,7 @@ internal void opengl_load_matrix(const fn_shader* shader, const char* uniformNam
 internal void opengl_render_frame(fn_camera* camera, fn_entity* entities, uint32 count)
 {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     for (uint32 i = 0; i < count; i++)
     {
@@ -97,15 +97,17 @@ internal void opengl_render_frame(fn_camera* camera, fn_entity* entities, uint32
             entityToRender->Transform.Scale
         );
 
-        mat4 cameraViewMatrix = fn_math_mat4_look_at(camera->Position, camera->Rotation);
+        mat4 cameraViewMatrix = fn_math_mat4_camera_view(camera->Position, camera->Rotation);
         mat4 projectionMatrix = camera->ProjectionMatrix;
 
         opengl_load_matrix(shader, "localToWorldMatrix", &localToWorldMatrix);
-        opengl_load_matrix(shader, "viewMatrix", &cameraViewMatrix);
+        opengl_load_matrix(shader, "cameraViewMatrix", &cameraViewMatrix);
         opengl_load_matrix(shader, "projectionMatrix", &projectionMatrix);
 
         glBindVertexArray(entityToRender->Mesh.Id);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        int size;
+        glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+        glDrawElements(GL_TRIANGLES, size / sizeof(uint16), GL_UNSIGNED_SHORT, 0);
 
         glBindVertexArray(0);
         glUseProgram(0);

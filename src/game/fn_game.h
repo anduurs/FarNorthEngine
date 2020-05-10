@@ -157,7 +157,7 @@ struct fn_mesh
     float* Vertices;
 
     uint32 IndicesCount;
-    uint32* Indices;
+    uint16* Indices;
 };
 
 struct fn_shader

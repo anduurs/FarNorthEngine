@@ -71,6 +71,22 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
     gameState->PlayerVelocityX = 0.0f;
     gameState->PlayerVelocityY = 0.0f;
 
+    fn_camera* camera = &gameState->Camera;
+    camera->FieldOfView = 70.0f;
+    camera->zNear = 0.1f;
+    camera->zFar = 130.0f;
+    camera->Position = vec3{ 0.0f, 0.0f, 0.0f };
+    camera->Rotation = fn_math_quat_angle_axis(90.0f, vec3{ 0.3f, 0.2f, 0.0f });
+
+    float aspectRatio = (float)memory->WindowWidth / (float)memory->WindowHeight;
+
+    camera->ProjectionMatrix = fn_math_mat4_perspective(
+        camera->FieldOfView, 
+        aspectRatio,
+        camera->zNear, 
+        camera->zFar
+    );
+
     fn_mem_arena_init(
         &gameState->WorldArena, 
         memory->PersistentStorageSize - sizeof(game_state), 
@@ -87,22 +103,44 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
     fn_entity* entities = gameWorld->Entities;
 
     fn_transform transform = {};
-    transform.Position = vec3{ 0.0f, 0.0f, 0.0f };
-    transform.Rotation = quaternion{ 0.0f, 0.0f, 0.0f, 1.0f };
+    transform.Position = vec3{ 0.0f, 0.0f, -20.0f };
+    transform.Rotation = fn_math_quat_angle_axis(0.0f, vec3{ 1.0f, 0, 0 });
     transform.Scale = vec3{ 1.0f, 1.0f, 1.0f };
 
     float vertices[] =
     {
-         0.5f,  0.5f, 0.0f,  // top right
-         0.5f, -0.5f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f,  // bottom left
-        -0.5f,  0.5f, 0.0f   // top left 
+        // front
+        -1.0, -1.0,  1.0,
+         1.0, -1.0,  1.0,
+         1.0,  1.0,  1.0,
+        -1.0,  1.0,  1.0,
+        // back
+        -1.0, -1.0, -1.0,
+         1.0, -1.0, -1.0,
+         1.0,  1.0, -1.0,
+        -1.0,  1.0, -1.0
     };
 
-    uint32 indices[] =
+    uint16 indices[] =
     {
-        0, 1, 3,
-        1, 2, 3
+        // front
+        0, 1, 2,
+        2, 3, 0,
+        // right
+        1, 5, 6,
+        6, 2, 1,
+        // back
+        7, 6, 5,
+        5, 4, 7,
+        // left
+        4, 0, 3,
+        3, 7, 4,
+        // bottom
+        4, 5, 1,
+        1, 0, 4,
+        // top
+        3, 2, 6,
+        6, 7, 3
     };
 
     fn_mesh mesh = {};
@@ -111,8 +149,7 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
     mesh.IndicesCount = array_length(indices);
     mesh.Indices = indices;
 
-    glewInit();
-    
+    opengl_initalize();
     
     mesh.Id = opengl_create_vertex_buffer(vertices, mesh.VertexCount, indices, mesh.IndicesCount);
    
@@ -121,6 +158,9 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
 
     fn_shader shader = {};
     shader.Id = opengl_create_shader_program((const char*)vertexShader.Data, (const char*)fragmentShader.Data);
+
+    memory->PlatformFreeFile(vertexShader.Data);
+    memory->PlatformFreeFile(fragmentShader.Data);
     
     entities->Transform = transform;
     entities->Mesh = mesh;
@@ -200,8 +240,10 @@ extern "C" __declspec(dllexport) FN_GAME_RENDER(fn_game_render)
 
     fn_world* gameWorld = gameState->GameWorld;
     fn_entity* entity = gameWorld->Entities;
+    fn_camera* camera = &gameState->Camera;
 
-    opengl_render(entity->Shader.Id, entity->Mesh.Id);
+    //opengl_render(entity->Shader.Id, entity->Mesh.Id);
+    opengl_render_frame(camera, entity, 1);
 
     //renderer_clear_screen(buffer, 0x00, 0x00, 0x00);
     //renderer_draw_quad(buffer, (int32)gameState->PlayerX, (int32)gameState->PlayerY, 25, 25, 0xFF, 0xFF, 0x00);

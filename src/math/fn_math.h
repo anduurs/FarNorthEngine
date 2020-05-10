@@ -133,22 +133,25 @@ internal inline vec3 fn_math_quat_forward(const quaternion& rotation)
 
 internal inline void fn_math_quat_rotate(float angle, const vec3& axis, quaternion* rotation)
 {
-	float sinHalfAngle = sinf(TO_RADIANS(angle) / 2.0f);
+	float sinHalfAngle = sinf(TO_RADIANS(angle / 2.0f));
 	rotation->x = axis.x * sinHalfAngle;
 	rotation->y = axis.y * sinHalfAngle;
 	rotation->z = axis.z * sinHalfAngle;
-	rotation->w = cosf(TO_RADIANS(angle) / 2.0f);
+	rotation->w = cosf(TO_RADIANS(angle / 2.0f));
+	fn_math_quat_normalize(rotation);
 }
 
 internal inline quaternion fn_math_quat_angle_axis(float angle, const vec3& axis)
 {
 	quaternion rotation = {};
 
-	float sinHalfAngle = sinf(TO_RADIANS(angle) / 2.0f);
+	float sinHalfAngle = sinf(TO_RADIANS(angle / 2.0f));
 	rotation.x = axis.x * sinHalfAngle;
 	rotation.y = axis.y * sinHalfAngle;
 	rotation.z = axis.z * sinHalfAngle;
-	rotation.w = cosf(TO_RADIANS(angle) / 2.0f);
+	rotation.w = cosf(TO_RADIANS(angle / 2.0f));
+
+	fn_math_quat_normalize(&rotation);
 
 	return rotation;
 }
@@ -163,9 +166,6 @@ struct mat4
 internal inline mat4 fn_math_mat4_identity()
 {
 	mat4 result = {};
-
-	// @TODO(Anders): Check if matrix data array gets initalized and if it does then remove memset 
-	memset(result.Data, 0, sizeof(float) * 16);
 	
 	result.Data[0 + 0 * 4] = 1.0f;
 	result.Data[1 + 1 * 4] = 1.0f;
@@ -178,7 +178,6 @@ internal inline mat4 fn_math_mat4_identity()
 internal inline mat4 fn_math_mat4_mul(const mat4& m1, const mat4& m2)
 {
 	mat4 result = {};
-	memset(result.Data, 0, sizeof(float) * 16);
 
 	for (uint32 i = 0; i < 16; i += 4)
 	{
@@ -199,9 +198,9 @@ internal inline mat4 fn_math_mat4_translation(const vec3& position)
 {
 	mat4 translationMatrix = fn_math_mat4_identity();
 
-	translationMatrix.Data[0 + 3 * 4] = position.x;
-	translationMatrix.Data[1 + 3 * 4] = position.y;
-	translationMatrix.Data[2 + 3 * 4] = position.z;
+	translationMatrix.Data[3 + 0 * 4] = position.x;
+	translationMatrix.Data[3 + 1 * 4] = position.y;
+	translationMatrix.Data[3 + 2 * 4] = position.z;
 
 	return translationMatrix;
 }
@@ -250,7 +249,7 @@ internal inline mat4 fn_math_mat4_local_to_world(const vec3& position, const qua
 	return fn_math_mat4_mul(translation, result1);
 }
 
-internal inline mat4 fn_math_mat4_look_at(const vec3& position, const quaternion& rotation)
+internal inline mat4 fn_math_mat4_camera_view(const vec3& position, const quaternion& rotation)
 {
 	mat4 rotationMatrix = fn_math_mat4_quat_to_rotation(fn_math_quat_conjugate(rotation));
 
@@ -266,17 +265,16 @@ internal inline mat4 fn_math_mat4_look_at(const vec3& position, const quaternion
 
 internal inline mat4 fn_math_mat4_perspective(float fov, float aspectRatio, float zNear, float zFar)
 {
-	float tanHalfFOV = tanf(fov / 2.0f);
+	float tanHalfFOV = tanf(TO_RADIANS(fov / 2.0f));
 	float zRange = zFar - zNear;
 
 	mat4 result = {};
-	memset(result.Data, 0, sizeof(float) * 16);
 
 	result.Data[0 + 0 * 4] = 1.0f / (aspectRatio * tanHalfFOV);
 	result.Data[1 + 1 * 4] = 1.0f / tanHalfFOV;
 	result.Data[2 + 2 * 4] = -(zFar + zNear) / zRange;
-	result.Data[3 + 2 * 4] = (-2.0f * zFar * zNear) / zRange;
-	result.Data[2 + 3 * 4] = -1;
+	result.Data[3 + 2 * 4] = -(2.0f * zFar * zNear) / zRange;
+	result.Data[2 + 3 * 4] = -1.0f;
 
 	return result;
 }
