@@ -22,14 +22,14 @@ struct vec4
 	float x, y, z, w;
 };
 
-internal inline float fn_math_vec3_length(const vec3& v)
+internal inline float fn_math_vec3_length(const vec3* v)
 {
-	return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
+	return sqrtf(v->x * v->x + v->y * v->y + v->z * v->z);
 }
 
 internal inline void fn_math_vec3_normalize(vec3* v)
 {
-	float len = fn_math_vec3_length(*v);
+	float len = fn_math_vec3_length(v);
 	v->x = v->x / len;
 	v->y = v->y / len;
 	v->z = v->z / len;

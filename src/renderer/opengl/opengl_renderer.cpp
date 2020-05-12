@@ -35,22 +35,22 @@ internal uint32 opengl_create_vertex_buffer(const float* vertices, uint32 vertex
     return vaoId;
 }
 
-internal uint32 opengl_create_shader_program(const char* vertexShaderCode, const char* fragmentShaderCode)
+internal fn_shader opengl_shader_create(const char* vertexShaderCode, const char* fragmentShaderCode)
 {
+    fn_shader result = {};
+
     uint32 vertexShaderId = glCreateShader(GL_VERTEX_SHADER);
     uint32 fragmentShaderId = glCreateShader(GL_FRAGMENT_SHADER);
 
     glShaderSource(vertexShaderId, 1, &vertexShaderCode, nullptr);
     glCompileShader(vertexShaderId);
 
-    int success;
-
-    glGetShaderiv(vertexShaderId, GL_COMPILE_STATUS, &success);
+    // @TODO(Anders): Handle vertex shader compile errors
 
     glShaderSource(fragmentShaderId, 1, &fragmentShaderCode, nullptr);
     glCompileShader(fragmentShaderId);
 
-    glGetShaderiv(fragmentShaderId, GL_COMPILE_STATUS, &success);
+    // @TODO(Anders): Handle fragment shader compile errors
 
     uint32 shaderProgramId = glCreateProgram();
 
@@ -58,57 +58,63 @@ internal uint32 opengl_create_shader_program(const char* vertexShaderCode, const
     glAttachShader(shaderProgramId, fragmentShaderId);
     glLinkProgram(shaderProgramId);
 
-    int success3;
-    char infoLog3[512];
-    glGetProgramiv(shaderProgramId, GL_LINK_STATUS, &success3);
-    if (!success3) 
-    {
-        glGetProgramInfoLog(shaderProgramId, 512, NULL, infoLog3);
-    }
+    // @TODO(Anders): Handle shader program linking errors
 
     glDeleteShader(vertexShaderId);
     glDeleteShader(fragmentShaderId);
 
-    return shaderProgramId;
+    result.Id = shaderProgramId;
+
+    return result;
 }
 
-internal void opengl_load_matrix(const fn_shader* shader, const char* uniformName, const mat4* matrix)
+internal void opengl_shader_load_matrix(const fn_shader* shader, const char* uniformName, const mat4* matrix)
 {
     uint32 uniformLocation = glGetUniformLocation(shader->Id, uniformName);
     glUniformMatrix4fv(uniformLocation, 1, GL_TRUE, matrix->Data);
 }
 
-internal fn_texture opengl_create_texture(const char* imageFileName)
+internal void opengl_shader_enable(const fn_shader* shader)
 {
-    fn_texture texture = {};
-
-    glGenTextures(1, &texture.Id);
-
-    glBindTexture(GL_TEXTURE_2D, texture.Id);
-
-    int width;
-    int height;
-    int channels;
-
-    stbi_set_flip_vertically_on_load(true);
-    uint8* imageData = stbi_load(imageFileName, &width, &height, &channels, 0);
-    
-    if (imageData)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, imageData);
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    }
-
-    stbi_image_free(imageData);
-
-    return texture;
+    glUseProgram(shader->Id);
 }
+
+internal void opengl_shader_disable()
+{
+    glUseProgram(0);
+}
+
+//internal fn_texture opengl_texture_create(const char* imageFileName)
+//{
+//    fn_texture texture = {};
+//
+//    glGenTextures(1, &texture.Id);
+//
+//    glBindTexture(GL_TEXTURE_2D, texture.Id);
+//
+//    int width;
+//    int height;
+//    int channels;
+//
+//    stbi_set_flip_vertically_on_load(true);
+//    uint8* imageData = stbi_load(imageFileName, &width, &height, &channels, 0);
+//    
+//    if (imageData)
+//    {
+//        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, imageData);
+//        glGenerateMipmap(GL_TEXTURE_2D);
+//
+//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+//
+//        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+//        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+//    }
+//
+//    stbi_image_free(imageData);
+//
+//    return texture;
+//}
 
 internal void opengl_render_frame(fn_camera* camera, fn_entity* entities, uint32 count)
 {
@@ -121,7 +127,7 @@ internal void opengl_render_frame(fn_camera* camera, fn_entity* entities, uint32
         fn_material* mat = &entityToRender->Material;
         uint32 shaderId = mat->Shader.Id;
 
-        glUseProgram(shaderId);
+        opengl_shader_enable(&mat->Shader);
         
         mat4 localToWorldMatrix = fn_math_mat4_local_to_world(
             entityToRender->Transform.Position, 
@@ -132,9 +138,9 @@ internal void opengl_render_frame(fn_camera* camera, fn_entity* entities, uint32
         mat4 cameraViewMatrix = fn_math_mat4_camera_view(camera->Position, camera->Rotation);
         mat4 projectionMatrix = camera->ProjectionMatrix;
 
-        opengl_load_matrix(&mat->Shader, "localToWorldMatrix", &localToWorldMatrix);
-        opengl_load_matrix(&mat->Shader, "cameraViewMatrix", &cameraViewMatrix);
-        opengl_load_matrix(&mat->Shader, "projectionMatrix", &projectionMatrix);
+        opengl_shader_load_matrix(&mat->Shader, "localToWorldMatrix", &localToWorldMatrix);
+        opengl_shader_load_matrix(&mat->Shader, "cameraViewMatrix", &cameraViewMatrix);
+        opengl_shader_load_matrix(&mat->Shader, "projectionMatrix", &projectionMatrix);
 
         glBindVertexArray(entityToRender->Mesh.Id);
         int size;
@@ -142,6 +148,7 @@ internal void opengl_render_frame(fn_camera* camera, fn_entity* entities, uint32
         glDrawElements(GL_TRIANGLES, size / sizeof(uint16), GL_UNSIGNED_SHORT, 0);
 
         glBindVertexArray(0);
-        glUseProgram(0);
+
+        opengl_shader_disable();
     }
 }

@@ -113,18 +113,6 @@ internal void win32_window_init_offscreen_buffer(win32_offscreen_buffer* buffer,
     buffer->Pitch = width * buffer->BytesPerPixel;
 }
 
-//internal void win32_window_update(HDC deviceContext, win32_offscreen_buffer* buffer, 
-//                    int32 windowWidth, int32 windowHeight,
-//                    int32 x, int32 y, int32 width, int32 height)
-//{
-//    StretchDIBits(deviceContext, 
-//                  0, 0, windowWidth, windowHeight, 
-//                  0, 0, buffer->Width, buffer->Height,
-//                  buffer->Data, 
-//                  &buffer->Info,
-//                  DIB_RGB_COLORS, SRCCOPY);
-//}
-
 //internal void win32_clip_mouse_to_window(HWND window)
 //{
 //    RECT rect;
@@ -195,19 +183,6 @@ internal LRESULT CALLBACK win32_window_callback(HWND window, UINT message, WPARA
             ShowCursor(true);*/
         } break;
         
-        //case WM_PAINT:
-        //{
-        //    PAINTSTRUCT paint;
-        //    HDC deviceContext = BeginPaint(window, &paint);
-        //    int32 x = paint.rcPaint.left;
-        //    int32 y = paint.rcPaint.top;
-        //    int32 width = paint.rcPaint.right - paint.rcPaint.left;
-        //    int32 height = paint.rcPaint.bottom - paint.rcPaint.top;
-        //    win32_window_dimension dimension = win32_window_get_dimension(window);
-        //    win32_window_update(deviceContext, &GlobalBackBuffer, dimension.Width, dimension.Height, x, y, width, height);
-        //    EndPaint(window, &paint);
-        //} break;
-
         default:
         {
             result = DefWindowProc(window, message, wParam, lParam);
@@ -473,6 +448,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
     GlobalPerfCountFrequency = perfCountFrequencyResult.QuadPart;
 
+    UINT desiredSchedulerMS = 1;
+    bool sleepIsGranular = (timeBeginPeriod(desiredSchedulerMS) == TIMERR_NOERROR);
+
     char exeFileName[MAX_PATH];
 
     DWORD sizeOfFileName = GetModuleFileNameA(0, exeFileName, sizeof(exeFileName));
@@ -585,14 +563,15 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
             game.Init(&gameMemory);
 
-            LARGE_INTEGER lastCounter = win32_get_wall_clock();
+            LARGE_INTEGER lastTickCounter = win32_get_wall_clock();
+            LARGE_INTEGER lastFrameCounter = win32_get_wall_clock();
 
             float targetTickRate = 60;
             float targetSecondsPerTick = 1.0f / targetTickRate;
-
             float accumulator = 0.0f;
-            float frameCounter = 0.0f;
-            uint32 tickCounter = 0;
+
+            float targetFrameRate = 60;
+            float targetSecondsPerFrame = 1.0f / targetFrameRate;
 
             GlobalApplicationRunning = true;
 
@@ -628,29 +607,17 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                     newInput->Keyboard.Released = false;
                 }
 
-                LARGE_INTEGER newCounter = win32_get_wall_clock();
-                float passedTime = win32_get_seconds_elapsed(lastCounter, newCounter);
-                lastCounter = newCounter;
+                LARGE_INTEGER newTickCounter = win32_get_wall_clock();
+                float passedTime = win32_get_seconds_elapsed(lastTickCounter, newTickCounter);
+                lastTickCounter = newTickCounter;
 
                 accumulator += passedTime;
-                frameCounter += passedTime;
 
                 while (accumulator >= targetSecondsPerTick)
                 {
                     game.Tick(&gameMemory, targetSecondsPerTick);
-                    tickCounter++;
                     accumulator -= targetSecondsPerTick;
                 }
-
-                game_offscreen_buffer buffer = {};
-                buffer.Width = GlobalBackBuffer.Width;
-                buffer.Height = GlobalBackBuffer.Height;
-                buffer.Pitch = GlobalBackBuffer.Pitch;
-                buffer.Data = GlobalBackBuffer.Data;
-
-                game.Render(&gameMemory, &buffer);
-
-                win32_opengl_swap_buffers(deviceContext);
 
                 DWORD playCursor;
                 DWORD writeCursor;
@@ -688,23 +655,35 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                     win32_audio_fill_sound_buffer(&soundOutput, byteToLock, bytesToWrite, &soundBuffer);
                 }
 
-               /* win32_window_dimension dimension = win32_window_get_dimension(window);
-                win32_window_update(deviceContext, &GlobalBackBuffer, dimension.Width, 
-                    dimension.Height, 0, 0, dimension.Width, dimension.Height);*/
-
-                if (frameCounter >= 1)
+                game.Render(&gameMemory);
+                
+                LARGE_INTEGER frameCounter = win32_get_wall_clock();
+                float secondsElapsedForFrame = win32_get_seconds_elapsed(lastFrameCounter, frameCounter);
+                
+                if (secondsElapsedForFrame < targetSecondsPerFrame)
                 {
-                    char printBuffer[256];
-                    sprintf_s(printBuffer, "%d ticks\n", tickCounter);
-                    OutputDebugStringA(printBuffer);
+                    while (secondsElapsedForFrame < targetSecondsPerFrame)
+                    {
+                        if (sleepIsGranular)
+                        {
+                            DWORD sleepMS = (DWORD)(1000.0f * (targetSecondsPerFrame - secondsElapsedForFrame));
+                            if (sleepMS > 0)
+                            {
+                                Sleep(sleepMS);
+                            }
+                        }
 
-                    frameCounter = 0;
-                    tickCounter = 0;
+                        secondsElapsedForFrame = win32_get_seconds_elapsed(lastFrameCounter, win32_get_wall_clock());
+                    }
                 }
+
+                SwapBuffers(deviceContext);
 
                 game_input* temp = newInput;
                 newInput = oldInput;
                 oldInput = temp;
+
+                lastFrameCounter = frameCounter;
             }
 
             win32_opengl_context_destroy(deviceContext, openglContext);

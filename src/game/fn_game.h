@@ -11,7 +11,7 @@ struct platform_file_result
     void* Data;
 };
 
-// NOTE(Anders): make async versions of read and write file. Look up I/O completion ports for windows platform layer
+// @TODO(Anders): make async versions of read and write file. Look up I/O completion ports for windows platform layer
 
 #define FN_PLATFORM_FILE_FREE(name) void name(void* data)
 typedef FN_PLATFORM_FILE_FREE(platform_file_free);
@@ -25,15 +25,6 @@ typedef FN_PLATFORM_FILE_READ(platform_file_read);
 #define FN_PLATFORM_DEBUG_LOG(name) void name(const char* message)
 typedef FN_PLATFORM_DEBUG_LOG(platform_debug_log);
 
-
-struct game_offscreen_buffer
-{
-    int32 Width;
-    int32 Height;
-    int32 Pitch;
-    void* Data;
-};
-
 struct game_sound_output_buffer
 {
     int32 SamplesPerSecond;
@@ -44,8 +35,9 @@ struct game_sound_output_buffer
 struct memory_arena
 {
     size_t Size;
-    uint8* Base;
     size_t Used;
+
+    uint8* Base;
 };
 
 struct game_memory
@@ -248,7 +240,7 @@ FN_GAME_PROCESS_INPUT(fn_game_process_input_stub){}
 typedef FN_GAME_TICK(game_tick);
 FN_GAME_TICK(fn_game_tick_stub){}
 
-#define FN_GAME_RENDER(name) void name(game_memory* memory, game_offscreen_buffer* buffer)
+#define FN_GAME_RENDER(name) void name(game_memory* memory)
 typedef FN_GAME_RENDER(game_render);
 FN_GAME_RENDER(fn_game_render_stub){}
 

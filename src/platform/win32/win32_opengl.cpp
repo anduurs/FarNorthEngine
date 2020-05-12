@@ -74,10 +74,5 @@ internal void win32_opengl_context_destroy(HDC deviceContext, HGLRC context)
     wglDeleteContext(context);
 }
 
-internal void win32_opengl_swap_buffers(HDC deviceContext)
-{
-    SwapBuffers(deviceContext);
-}
-
 
 

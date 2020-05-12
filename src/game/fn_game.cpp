@@ -2,44 +2,6 @@
 
 #include "../renderer/opengl/opengl_renderer.cpp"
 
-//internal void renderer_clear_screen(game_offscreen_buffer* buffer, uint8 red, uint8 green, uint8 blue)
-//{
-//    uint8* row = (uint8*)buffer->Data; 
-//    
-//    for (int32 y = 0; y < buffer->Height; y++)
-//    {
-//        uint32* pixel = (uint32*)row;
-//        for (int32 x = 0; x < buffer->Width; x++)
-//        {
-//            *pixel++ = ((red << 16) | (green << 8) | blue);
-//        }
-//        
-//        row += buffer->Pitch;
-//    }
-//}
-//
-//internal void renderer_draw_quad(game_offscreen_buffer* buffer, 
-//    int32 xStart, int32 yStart, 
-//    int32 width, int32 height,
-//    uint8 red, uint8 green, uint8 blue)
-//{
-//    if (xStart <= 0) xStart = 1;
-//    if (xStart + width >= buffer->Width) xStart = buffer->Width - width;
-//    if (yStart <= 0) yStart = 0;
-//    if (yStart + height >= buffer->Height) yStart = buffer->Height - height;
-//
-//    uint32* row = (uint32*)buffer->Data; 
-//    
-//    for (int32 y = yStart; y < yStart + height; y++)
-//    {
-//        for (int32 x = xStart; x < xStart + width; x++)
-//        {
-//            uint32* pixel = (row + x) + y * buffer->Width;  
-//            *pixel++ = ((red << 16) | (green << 8) | blue);
-//        }
-//    }
-//}
-
 internal void fn_mem_arena_init(memory_arena* arena, size_t size, uint8* base)
 {
     arena->Size = size;
@@ -158,21 +120,20 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
     platform_file_result vertexShader = memory->PlatformReadFile("C:/dev/FarNorthEngine/data/shaders/test_vertex_shader.vert");
     platform_file_result fragmentShader = memory->PlatformReadFile("C:/dev/FarNorthEngine/data/shaders/test_fragment_shader.frag");
 
-    fn_shader shader = {};
-    shader.Id = opengl_create_shader_program((const char*)vertexShader.Data, (const char*)fragmentShader.Data);
+    fn_shader shader = opengl_shader_create((const char*)vertexShader.Data, (const char*)fragmentShader.Data);
 
     memory->PlatformFreeFile(vertexShader.Data);
     memory->PlatformFreeFile(fragmentShader.Data);
 
-    fn_texture diffuseMap = opengl_create_texture("C:/dev/FarNorthEngine/data/textures/container.png");
+    //fn_texture diffuseMap = opengl_texture_create("C:/dev/FarNorthEngine/data/textures/container.png");
 
-    glUseProgram(shader.Id);
-    glUniform1i(glGetUniformLocation(shader.Id, "diffuseMap"), 0);
-    glUseProgram(0);
+    //glUseProgram(shader.Id);
+    //glUniform1i(glGetUniformLocation(shader.Id, "diffuseMap"), 0);
+    //glUseProgram(0);
 
     fn_material material = {};
     material.Shader = shader;
-    material.DiffuseMap = diffuseMap;
+    //material.DiffuseMap = diffuseMap;
     
     entities->Transform = transform;
     entities->Mesh = mesh;
@@ -308,9 +269,6 @@ extern "C" __declspec(dllexport) FN_GAME_RENDER(fn_game_render)
     fn_camera* camera = &gameState->Camera;
 
     opengl_render_frame(camera, entity, 1);
-
-    //renderer_clear_screen(buffer, 0x00, 0x00, 0x00);
-    //renderer_draw_quad(buffer, (int32)gameState->PlayerX, (int32)gameState->PlayerY, 25, 25, 0xFF, 0xFF, 0x00);
 }
 
 extern "C" __declspec(dllexport) FN_GAME_OUTPUT_SOUND(fn_game_output_sound)
