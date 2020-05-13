@@ -657,8 +657,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
                 game.Render(&gameMemory);
                 
+                SwapBuffers(deviceContext);
+                
                 LARGE_INTEGER frameCounter = win32_get_wall_clock();
                 float secondsElapsedForFrame = win32_get_seconds_elapsed(lastFrameCounter, frameCounter);
+                lastFrameCounter = frameCounter;
                 
                 if (secondsElapsedForFrame < targetSecondsPerFrame)
                 {
@@ -677,13 +680,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                     }
                 }
 
-                SwapBuffers(deviceContext);
-
                 game_input* temp = newInput;
                 newInput = oldInput;
                 oldInput = temp;
-
-                lastFrameCounter = frameCounter;
             }
 
             win32_opengl_context_destroy(deviceContext, openglContext);

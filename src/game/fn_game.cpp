@@ -1,6 +1,6 @@
 #include "fn_game.h"
 
-#include "../renderer/opengl/opengl_renderer.cpp"
+#include "../engine/renderer/opengl/opengl_renderer.cpp"
 
 internal void fn_mem_arena_init(memory_arena* arena, size_t size, uint8* base)
 {

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstring>
 #include <stdint.h>
 
 #define kilobytes(Value) ((Value)*1024LL)
