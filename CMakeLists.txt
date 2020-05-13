@@ -15,7 +15,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BuildDir})
 list(APPEND CommonCompilerFlags -nologo -Z7 -MTd -fp:fast -FC -GR- -EHa- -Oi -Od -WX -W4 -wd4100 -wd4189)
 list(APPEND CommonCompilerDefinitions -DDEBUG_BUILD=1 -DPLATFORM_WIN32=1)
 list(APPEND CommonLinkerFlags -incremental:no -opt:ref)
-list(APPEND CommonLinkerLibs user32.lib gdi32.lib winmm.lib opengl32.lib ${DepsDir}/GLEW/lib/glew32s.lib)
+list(APPEND CommonLinkerLibs user32.lib gdi32.lib winmm.lib Ws2_32.lib opengl32.lib ${DepsDir}/GLEW/lib/glew32s.lib)
 list(APPEND GameLinkerLibs opengl32.lib ${DepsDir}/GLEW/lib/glew32s.lib)
 
 include_directories(${SourceDir})
