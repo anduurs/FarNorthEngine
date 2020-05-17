@@ -3,6 +3,7 @@
 #include "win32_input.cpp"
 #include "win32_audio.cpp"
 #include "win32_opengl.cpp"
+#include "win32_net.cpp"
 
 FN_PLATFORM_FILE_WRITE(PlatformWriteFile)
 {
@@ -575,6 +576,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
             GlobalApplicationRunning = true;
 
+            win32_net_socket_init();
+
             while (GlobalApplicationRunning)
             {
                 FILETIME newDLLWriteTime = win32_get_last_write_time(sourceGameCodeDLLFullPath);
@@ -685,6 +688,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 oldInput = temp;
             }
 
+            win32_net_socket_shutdown();
             win32_opengl_context_destroy(deviceContext, openglContext);
         }
     }
