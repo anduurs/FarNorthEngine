@@ -52,12 +52,6 @@ struct win32_window_dimension
     int32 Height;
 };
 
-struct win32_opengl_context
-{
-    HDC DeviceContext;
-    HGLRC OpenGLContext;
-};
-
 global_variable volatile bool GlobalApplicationRunning;
 global_variable win32_offscreen_buffer GlobalBackBuffer;
 global_variable uint64 GlobalPerfCountFrequency;

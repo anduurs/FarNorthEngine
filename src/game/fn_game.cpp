@@ -1,6 +1,5 @@
 #include "fn_game.h"
-
-#include "../engine/renderer/opengl/opengl_renderer.cpp"
+#include "opengl_renderer.cpp"
 
 internal void fn_mem_arena_init(memory_arena* arena, size_t size, uint8* base)
 {
@@ -117,13 +116,13 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
     
     mesh.Id = opengl_create_vertex_buffer(vertices, mesh.VertexCount, indices, mesh.IndicesCount);
    
-    platform_file_result vertexShader = memory->PlatformReadFile("C:/dev/FarNorthEngine/data/shaders/test_vertex_shader.vert");
-    platform_file_result fragmentShader = memory->PlatformReadFile("C:/dev/FarNorthEngine/data/shaders/test_fragment_shader.frag");
+    platform_file_result vertexShader = memory->PlatformAPI.PlatformReadFile("C:/dev/FarNorthEngine/data/shaders/test_vertex_shader.vert");
+    platform_file_result fragmentShader = memory->PlatformAPI.PlatformReadFile("C:/dev/FarNorthEngine/data/shaders/test_fragment_shader.frag");
 
     fn_shader shader = opengl_shader_create((const char*)vertexShader.Data, (const char*)fragmentShader.Data);
 
-    memory->PlatformFreeFile(vertexShader.Data);
-    memory->PlatformFreeFile(fragmentShader.Data);
+    memory->PlatformAPI.PlatformFreeFile(vertexShader.Data);
+    memory->PlatformAPI.PlatformFreeFile(fragmentShader.Data);
 
     //fn_texture diffuseMap = opengl_texture_create("C:/dev/FarNorthEngine/data/textures/container.png");
 

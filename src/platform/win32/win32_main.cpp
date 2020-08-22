@@ -3,7 +3,6 @@
 #include "win32_input.cpp"
 #include "win32_audio.cpp"
 #include "win32_opengl.cpp"
-#include "win32_net.cpp"
 
 FN_PLATFORM_FILE_WRITE(PlatformWriteFile)
 {
@@ -528,10 +527,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
             gameMemory.TemporaryStorage = (uint64*)gameMemory.PersistentStorage + gameMemory.PersistentStorageSize;
             gameMemory.TransientStorage = (uint64*)gameMemory.PersistentStorage + gameMemory.PersistentStorageSize + gameMemory.TemporaryStorageSize;
 
-            gameMemory.PlatformWriteFile = PlatformWriteFile;
-            gameMemory.PlatformFreeFile = PlatformFreeFile;
-            gameMemory.PlatformReadFile = PlatformReadFile;
-            gameMemory.PlatformDebugLog = PlatformDebugLog;
+            gameMemory.PlatformAPI.PlatformWriteFile = PlatformWriteFile;
+            gameMemory.PlatformAPI.PlatformFreeFile = PlatformFreeFile;
+            gameMemory.PlatformAPI.PlatformReadFile = PlatformReadFile;
+            gameMemory.PlatformAPI.PlatformDebugLog = PlatformDebugLog;
             gameMemory.WindowWidth = windowWidth;
             gameMemory.WindowHeight = windowHeight;
 
@@ -575,8 +574,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
             float targetSecondsPerFrame = 1.0f / targetFrameRate;
 
             GlobalApplicationRunning = true;
-
-            win32_net_socket_init();
 
             while (GlobalApplicationRunning)
             {
@@ -688,7 +685,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 oldInput = temp;
             }
 
-            win32_net_socket_shutdown();
             win32_opengl_context_destroy(deviceContext, openglContext);
         }
     }
