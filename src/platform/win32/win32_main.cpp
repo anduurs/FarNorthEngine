@@ -644,7 +644,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                     win32_audio_fill_sound_buffer(&soundOutput, byteToLock, bytesToWrite, &soundBuffer);
                 }
 
-
+                win32_window_dimension dimension = win32_window_get_dimension(window);
+                win32_window_update(deviceContext, &GlobalBackBuffer, dimension.Width,
+                    dimension.Height, 0, 0, dimension.Width, dimension.Height);
                 
                 LARGE_INTEGER frameCounter = win32_get_wall_clock();
                 float secondsElapsedForFrame = win32_get_seconds_elapsed(lastFrameCounter, frameCounter);
