@@ -2,9 +2,6 @@
 
 #include "../../game/fn_game.h"
 
-#include <winsock2.h>
-#include <ws2tcpip.h>
-
 #include <windows.h>
 #include <stdio.h>
 #include <xinput.h>

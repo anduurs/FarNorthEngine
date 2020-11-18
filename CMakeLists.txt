@@ -15,8 +15,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BuildDir})
 list(APPEND CommonCompilerFlags -nologo -Z7 -MTd -fp:fast -FC -GR- -EHa- -Oi -Od -WX -W4 -wd4100 -wd4189)
 list(APPEND CommonCompilerDefinitions -DDEBUG_BUILD=1 -DPLATFORM_WIN32=1)
 list(APPEND CommonLinkerFlags -incremental:no -opt:ref)
-list(APPEND CommonLinkerLibs user32.lib gdi32.lib winmm.lib Ws2_32.lib opengl32.lib ${DepsDir}/GLEW/lib/glew32s.lib)
-list(APPEND GameLinkerLibs opengl32.lib ${DepsDir}/GLEW/lib/glew32s.lib)
+list(APPEND CommonLinkerLibs user32.lib gdi32.lib winmm.lib)
 
 include_directories(${SourceDir})
 add_compile_options(${CommonCompilerFlags})
@@ -24,7 +23,6 @@ add_compile_options(${CommonCompilerFlags})
 add_library(GameLib SHARED ${SourceDir}game/fn_game.cpp)
 set_target_properties(GameLib PROPERTIES OUTPUT_NAME game)
 target_compile_definitions(GameLib PRIVATE ${CommonCompilerDefinitions})
-target_link_libraries(GameLib PRIVATE ${GameLinkerLibs})
 target_link_options(GameLib PRIVATE ${CommonLinkerFlags})
 add_custom_command(TARGET GameLib WORKING_DIRECTORY ${BuildDir}
 	PRE_BUILD 
@@ -33,12 +31,10 @@ add_custom_command(TARGET GameLib WORKING_DIRECTORY ${BuildDir}
 		COMMAND ${CMAKE_COMMAND} -E make_directory ${DataDir}
 		COMMAND del ARGS game_*.pdb 
 )
-if(FALSE)
 add_custom_command(TARGET GameLib WORKING_DIRECTORY ${BuildDir}
     POST_BUILD 
         COMMAND ren ARGS game.pdb game_%random%.pdb 
 )
-endif()
 
 add_executable(Game WIN32 ${SourceDir}platform/win32/win32_main.cpp)
 set_target_properties(Game PROPERTIES OUTPUT_NAME Win64Game)

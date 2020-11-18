@@ -5,6 +5,15 @@
 #include "fn_game_input.h"
 #include "../platform/fn_platform.h"
 
+struct game_offscreen_buffer
+{
+    int32 Width;
+    int32 Height;
+    int32 Pitch;
+    int32 BytesPerPixel;
+    void* Data;
+};
+
 struct game_sound_output_buffer
 {
     int32 SamplesPerSecond;
@@ -115,69 +124,6 @@ struct player
     vec2 Velocity;
 };
 
-struct fn_transform
-{
-    vec3 Position;
-    quaternion Rotation;
-    vec3 Scale;
-};
-
-struct fn_mesh
-{
-    uint32 Id;
-
-    uint32 VertexCount;
-    float* Vertices;
-
-    uint32 IndicesCount;
-    uint16* Indices;
-};
-
-struct fn_shader
-{
-    uint32 Id;
-};
-
-struct fn_texture
-{
-    uint32 Id;
-};
-
-struct fn_material
-{
-    fn_shader Shader;
-    fn_texture DiffuseMap;
-};
-
-struct fn_camera
-{
-    float FieldOfView;
-    float zNear;
-    float zFar;
-
-    vec3 Position;
-    quaternion Rotation;
-
-    mat4 ProjectionMatrix;
-
-    bool MoveForward;
-    bool MoveBack;
-    bool MoveRight;
-    bool MoveLeft;
-
-    float CurrentMouseX;
-    float CurrentMouseY;
-    float PreviousMouseX;
-    float PreviousMouseY;
-};
-
-struct fn_entity
-{
-    fn_transform Transform;
-    fn_mesh Mesh;
-    fn_material Material;
-};
-
 struct fn_world_chunk
 {
     uint16 ChunkX;
@@ -191,14 +137,12 @@ struct fn_world
 {
     uint16 ChunkDimension;
     fn_world_chunk* Chunks;
-    fn_entity* Entities;
+    player* Player;
 };
 
 struct game_state
 {
     float tSine;
-
-    fn_camera Camera;
 
     memory_arena WorldArena;
     fn_world* GameWorld;
@@ -217,7 +161,7 @@ FN_GAME_PROCESS_INPUT(fn_game_process_input_stub){}
 typedef FN_GAME_TICK(game_tick);
 FN_GAME_TICK(fn_game_tick_stub){}
 
-#define FN_GAME_RENDER(name) void name(game_memory* memory)
+#define FN_GAME_RENDER(name) void name(game_memory* memory, game_offscreen_buffer* offScreenBuffer)
 typedef FN_GAME_RENDER(game_render);
 FN_GAME_RENDER(fn_game_render_stub){}
 

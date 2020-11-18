@@ -1,8 +1,6 @@
 #include "win32_main.h"
-
 #include "win32_input.cpp"
 #include "win32_audio.cpp"
-#include "win32_opengl.cpp"
 
 FN_PLATFORM_FILE_WRITE(PlatformWriteFile)
 {
@@ -113,35 +111,17 @@ internal void win32_window_init_offscreen_buffer(win32_offscreen_buffer* buffer,
     buffer->Pitch = width * buffer->BytesPerPixel;
 }
 
-//internal void win32_clip_mouse_to_window(HWND window)
-//{
-//    RECT rect;
-//    GetClientRect(window, &rect);
-//
-//    POINT ul;
-//    ul.x = rect.left;
-//    ul.y = rect.top;
-//
-//    POINT lr;
-//    lr.x = rect.right;
-//    lr.y = rect.bottom;
-//
-//    MapWindowPoints(window, nullptr, &ul, 1);
-//    MapWindowPoints(window, nullptr, &lr, 1);
-//
-//    rect.left = ul.x;
-//    rect.top = ul.y;
-//
-//    rect.right = lr.x;
-//    rect.bottom = lr.y;
-//
-//    ClipCursor(&rect);
-//}
-//
-//internal void win32_free_mouse()
-//{
-//    ClipCursor(nullptr);
-//}
+internal void win32_window_update(HDC deviceContext, win32_offscreen_buffer* buffer,
+    int32 windowWidth, int32 windowHeight,
+    int32 x, int32 y, int32 width, int32 height)
+{
+    StretchDIBits(deviceContext,
+        0, 0, windowWidth, windowHeight,
+        0, 0, buffer->Width, buffer->Height,
+        buffer->Data,
+        &buffer->Info,
+        DIB_RGB_COLORS, SRCCOPY);
+}
 
 internal LRESULT CALLBACK win32_window_callback(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -171,16 +151,17 @@ internal LRESULT CALLBACK win32_window_callback(HWND window, UINT message, WPARA
             PostQuitMessage(0);
         } break;
 
-        case WM_SETFOCUS:
+        case WM_PAINT:
         {
-            /*win32_clip_mouse_to_window(window);
-            ShowCursor(false);*/
-        } break;
-
-        case WM_KILLFOCUS:
-        {
-            /*win32_free_mouse();
-            ShowCursor(true);*/
+            PAINTSTRUCT paint;
+            HDC deviceContext = BeginPaint(window, &paint);
+            int32 x = paint.rcPaint.left;
+            int32 y = paint.rcPaint.top;
+            int32 width = paint.rcPaint.right - paint.rcPaint.left;
+            int32 height = paint.rcPaint.bottom - paint.rcPaint.top;
+            win32_window_dimension dimension = win32_window_get_dimension(window);
+            win32_window_update(deviceContext, &GlobalBackBuffer, dimension.Width, dimension.Height, x, y, width, height);
+            EndPaint(window, &paint);
         } break;
         
         default:
@@ -510,8 +491,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
             HDC deviceContext = GetDC(window);
 
-            HGLRC openglContext = win32_opengl_context_create(deviceContext, 0, 0, windowWidth, windowHeight);
-
             win32_state win32State = {};
 
             game_memory gameMemory = {};
@@ -643,6 +622,16 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                     soundIsValid = true;
                 }
 
+                game_offscreen_buffer offScreenBuffer = {};
+                
+                offScreenBuffer.Width = GlobalBackBuffer.Width;
+                offScreenBuffer.Height = GlobalBackBuffer.Height;
+                offScreenBuffer.Pitch = GlobalBackBuffer.Pitch;
+                offScreenBuffer.BytesPerPixel = GlobalBackBuffer.BytesPerPixel;
+                offScreenBuffer.Data = GlobalBackBuffer.Data;
+
+                game.Render(&gameMemory, &offScreenBuffer);
+
                 game_sound_output_buffer soundBuffer = {};
                 soundBuffer.SamplesPerSecond = soundOutput.SamplesPerSecond;
                 soundBuffer.SampleCount = bytesToWrite / soundOutput.BytesPerSample;
@@ -655,9 +644,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                     win32_audio_fill_sound_buffer(&soundOutput, byteToLock, bytesToWrite, &soundBuffer);
                 }
 
-                game.Render(&gameMemory);
-                
-                SwapBuffers(deviceContext);
+
                 
                 LARGE_INTEGER frameCounter = win32_get_wall_clock();
                 float secondsElapsedForFrame = win32_get_seconds_elapsed(lastFrameCounter, frameCounter);
@@ -684,8 +671,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 newInput = oldInput;
                 oldInput = temp;
             }
-
-            win32_opengl_context_destroy(deviceContext, openglContext);
         }
     }
     

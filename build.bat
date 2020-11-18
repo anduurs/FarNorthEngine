@@ -10,7 +10,7 @@ REM -EHa turns off c++ exception handling
 REM -Oi turn on compiler intrinsics
 set CommonCompilerFlags=-nologo -MTd -fp:fast -FC -GR- -EHa- -Oi -WX -W4 -wd4100 -wd4189
 set CommonLinkerFlags=-incremental:no -opt:ref
-set PlatformLinkerLibs=user32.lib Gdi32.lib opengl32.lib ..\..\..\dependencies\GLEW\lib\glew32s.lib
+set PlatformLinkerLibs=user32.lib Gdi32.lib
 
 set DebugCompilerFlags=-Od -Z7
 set DebugCompilerDefinitions=-DDEBUG_BUILD=1 -DPLATFORM_WIN32=1 
