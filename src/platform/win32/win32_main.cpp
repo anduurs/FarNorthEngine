@@ -528,10 +528,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 gameMemory.TransientStorage && 
                 samples)
             {
-                PlatformAPI.PlatformWriteFile = PlatformWriteFile;
-                PlatformAPI.PlatformFreeFile = PlatformFreeFile;
-                PlatformAPI.PlatformReadFile = PlatformReadFile;
-                PlatformAPI.PlatformDebugLog = PlatformDebugLog;
+                PlatformAPI.WriteFile = PlatformWriteFile;
+                PlatformAPI.FreeFile = PlatformFreeFile;
+                PlatformAPI.ReadFile = PlatformReadFile;
+                PlatformAPI.DebugLog = PlatformDebugLog;
 
                 gameMemory.WindowWidth = windowWidth;
                 gameMemory.WindowHeight = windowHeight;

@@ -25,11 +25,11 @@ typedef FN_PLATFORM_DEBUG_LOG(platform_debug_log);
 
 struct platform_api
 {
-    platform_file_write* PlatformWriteFile;
-    platform_file_read* PlatformReadFile;
-    platform_file_free* PlatformFreeFile;
+    platform_file_write* WriteFile;
+    platform_file_read* ReadFile;
+    platform_file_free* FreeFile;
 
-    platform_debug_log* PlatformDebugLog;
+    platform_debug_log* DebugLog;
 };
 
 global_variable platform_api PlatformAPI;
