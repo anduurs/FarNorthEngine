@@ -61,7 +61,7 @@ extern "C" __declspec(dllexport) FN_GAME_RENDER(fn_game_render)
     game_state* gameState = (game_state*)memory->PersistentStorage;
 
     fn_renderer_clear_screen(offScreenBuffer, 0x00, 0x00, 0x00);
-    fn_renderer_draw_quad(offScreenBuffer, 200, 500, 50, 50, 0xFF, 0x00, 0xFF);
+    fn_renderer_draw_quad(offScreenBuffer, 200, 100, 80, 80, 0x00, 0xFF, 0xFF);
 }
 
 extern "C" __declspec(dllexport) FN_GAME_OUTPUT_SOUND(fn_game_output_sound)
