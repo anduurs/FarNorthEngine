@@ -4,8 +4,6 @@
 
 #include <windows.h>
 #include <stdio.h>
-#include <xinput.h>
-#include <dsound.h>
 
 struct win32_game_code
 {

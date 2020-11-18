@@ -1,5 +1,7 @@
 #pragma once
 
+#include <xinput.h>
+
 #define XINPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE* pState)
 typedef XINPUT_GET_STATE(xinput_get_state);
 XINPUT_GET_STATE(XInputGetStateStub)

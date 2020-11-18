@@ -472,26 +472,24 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
         int32 windowWidth = 1280;
         int32 windowHeight = 720;
         
-        HWND window = CreateWindowEx(0,
-                                     windowClass.lpszClassName,
-                                     applicationName,
-                                     WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-                                     CW_USEDEFAULT,
-                                     CW_USEDEFAULT,
-                                     windowWidth,
-                                     windowHeight,
-                                     0,
-                                     0,
-                                     hInstance,
-                                     0);
+        HWND window = CreateWindowEx(
+            0,
+            windowClass.lpszClassName,
+            applicationName,
+            WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            windowWidth,
+            windowHeight,
+            0,
+            0,
+            hInstance,
+            0
+        );
         
         if (window)
         {
-            win32_window_dimension dim = win32_window_get_dimension(window);
-
             HDC deviceContext = GetDC(window);
-
-            win32_state win32State = {};
 
             game_memory gameMemory = {};
 
@@ -500,21 +498,15 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
             gameMemory.TransientStorageSize = gigabytes((uint64)1);
 
             uint64 totalSize = gameMemory.PersistentStorageSize + gameMemory.TemporaryStorageSize + gameMemory.TransientStorageSize;
+
+            win32_state win32State = {};
+
             win32State.TotalGameMemorySize = totalSize;
             win32State.GameMemoryBlock = VirtualAlloc(0, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
             gameMemory.PersistentStorage = win32State.GameMemoryBlock;
             gameMemory.TemporaryStorage = (uint64*)gameMemory.PersistentStorage + gameMemory.PersistentStorageSize;
             gameMemory.TransientStorage = (uint64*)gameMemory.PersistentStorage + gameMemory.PersistentStorageSize + gameMemory.TemporaryStorageSize;
-
-            gameMemory.PlatformAPI.PlatformWriteFile = PlatformWriteFile;
-            gameMemory.PlatformAPI.PlatformFreeFile = PlatformFreeFile;
-            gameMemory.PlatformAPI.PlatformReadFile = PlatformReadFile;
-            gameMemory.PlatformAPI.PlatformDebugLog = PlatformDebugLog;
-            gameMemory.WindowWidth = windowWidth;
-            gameMemory.WindowHeight = windowHeight;
-
-            win32_input_load_xinput();
-            win32_window_init_offscreen_buffer(&GlobalBackBuffer, windowWidth, windowHeight);
 
             win32_sound_output_buffer soundOutput = {};
 
@@ -526,152 +518,171 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
             soundOutput.BufferSize = soundOutput.SamplesPerSecond * soundOutput.BytesPerSample;
             soundOutput.LatencySampleCount = soundOutput.SamplesPerSecond / 15;
 
-            int16* samples = (int16*)VirtualAlloc(0, soundOutput.BufferSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            int16* samples = (int16*)VirtualAlloc(0, soundOutput.BufferSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
-            win32_audio_init_dsound(window, soundOutput.SamplesPerSecond, soundOutput.BufferSize);
-            win32_audio_clear_sound_buffer(&soundOutput);
+            win32_window_init_offscreen_buffer(&GlobalBackBuffer, windowWidth, windowHeight);
 
-            GlobalSoundBuffer->Play(0, 0, DSBPLAY_LOOPING);
-            
-            game_input input[2] = {};
-            game_input* oldInput = &input[0];
-            game_input* newInput = &input[1];
-
-            FILETIME DLLWriteTime = win32_get_last_write_time(sourceGameCodeDLLFullPath);
-            win32_game_code game = win32_load_game_code(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath, DLLWriteTime);
-
-            game.Init(&gameMemory);
-
-            LARGE_INTEGER lastTickCounter = win32_get_wall_clock();
-            LARGE_INTEGER lastFrameCounter = win32_get_wall_clock();
-
-            float targetTickRate = 60;
-            float targetSecondsPerTick = 1.0f / targetTickRate;
-            float accumulator = 0.0f;
-
-            float targetFrameRate = 60;
-            float targetSecondsPerFrame = 1.0f / targetFrameRate;
-
-            GlobalApplicationRunning = true;
-
-            while (GlobalApplicationRunning)
+            if (GlobalBackBuffer.Data && 
+                gameMemory.PersistentStorage && 
+                gameMemory.TemporaryStorage && 
+                gameMemory.TransientStorage && 
+                samples)
             {
-                FILETIME newDLLWriteTime = win32_get_last_write_time(sourceGameCodeDLLFullPath);
+                PlatformAPI.PlatformWriteFile = PlatformWriteFile;
+                PlatformAPI.PlatformFreeFile = PlatformFreeFile;
+                PlatformAPI.PlatformReadFile = PlatformReadFile;
+                PlatformAPI.PlatformDebugLog = PlatformDebugLog;
 
-                if (CompareFileTime(&newDLLWriteTime, &game.LastDLLWriteTime) != 0)
+                gameMemory.WindowWidth = windowWidth;
+                gameMemory.WindowHeight = windowHeight;
+
+                win32_input_load_xinput();
+                
+                win32_audio_init_dsound(window, soundOutput.SamplesPerSecond, soundOutput.BufferSize);
+                win32_audio_clear_sound_buffer(&soundOutput);
+
+                GlobalSoundBuffer->Play(0, 0, DSBPLAY_LOOPING);
+
+                game_input input[2] = {};
+                game_input* oldInput = &input[0];
+                game_input* newInput = &input[1];
+
+                FILETIME DLLWriteTime = win32_get_last_write_time(sourceGameCodeDLLFullPath);
+                win32_game_code game = win32_load_game_code(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath, DLLWriteTime);
+
+                game.Init(&gameMemory);
+
+                LARGE_INTEGER lastTickCounter = win32_get_wall_clock();
+                LARGE_INTEGER lastFrameCounter = win32_get_wall_clock();
+
+                float targetTickRate = 60;
+                float targetSecondsPerTick = 1.0f / targetTickRate;
+                float accumulator = 0.0f;
+
+                float targetFrameRate = 60;
+                float targetSecondsPerFrame = 1.0f / targetFrameRate;
+
+                GlobalApplicationRunning = true;
+
+                while (GlobalApplicationRunning)
                 {
-                    win32_unload_game_code(&game);
-                    game = win32_load_game_code(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath, DLLWriteTime);
-                }
+                    FILETIME newDLLWriteTime = win32_get_last_write_time(sourceGameCodeDLLFullPath);
 
-                win32_process_messages(window, &win32State, newInput);
-                win32_input_poll_gamepad(oldInput, newInput);
-
-                if (win32State.InputRecordingIndex)
-                {
-                    win32_record_input(&win32State, newInput);
-                }
-
-                if (win32State.InputPlayingIndex)
-                {
-                    win32_play_back_input(&win32State, newInput);
-                }
-
-                game.ProcessInput(&gameMemory, newInput);
-
-                if (!win32State.InputPlayingIndex)
-                {
-                    newInput->Keyboard.KeyCode = 0;
-                    newInput->Keyboard.Pressed = false;
-                    newInput->Keyboard.Released = false;
-                }
-
-                LARGE_INTEGER newTickCounter = win32_get_wall_clock();
-                float passedTime = win32_get_seconds_elapsed(lastTickCounter, newTickCounter);
-                lastTickCounter = newTickCounter;
-
-                accumulator += passedTime;
-
-                while (accumulator >= targetSecondsPerTick)
-                {
-                    game.Tick(&gameMemory, targetSecondsPerTick);
-                    accumulator -= targetSecondsPerTick;
-                }
-
-                DWORD playCursor;
-                DWORD writeCursor;
-                DWORD byteToLock = 0;
-                DWORD bytesToWrite = 0;
-
-                bool soundIsValid = false;
-
-                if (SUCCEEDED(GlobalSoundBuffer->GetCurrentPosition(&playCursor, &writeCursor)))
-                {
-                    byteToLock = (soundOutput.RunningSampleIndex * soundOutput.BytesPerSample) % soundOutput.BufferSize;
-
-                    if (byteToLock > playCursor)
+                    if (CompareFileTime(&newDLLWriteTime, &game.LastDLLWriteTime) != 0)
                     {
-                        bytesToWrite = soundOutput.BufferSize - byteToLock;
-                        bytesToWrite += playCursor;
-                    }
-                    else
-                    {
-                        bytesToWrite = playCursor - byteToLock;
+                        win32_unload_game_code(&game);
+                        game = win32_load_game_code(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath, DLLWriteTime);
                     }
 
-                    soundIsValid = true;
-                }
+                    win32_process_messages(window, &win32State, newInput);
+                    win32_input_poll_gamepad(oldInput, newInput);
 
-                game_offscreen_buffer offScreenBuffer = {};
-                
-                offScreenBuffer.Width = GlobalBackBuffer.Width;
-                offScreenBuffer.Height = GlobalBackBuffer.Height;
-                offScreenBuffer.Pitch = GlobalBackBuffer.Pitch;
-                offScreenBuffer.BytesPerPixel = GlobalBackBuffer.BytesPerPixel;
-                offScreenBuffer.Data = GlobalBackBuffer.Data;
-
-                game.Render(&gameMemory, &offScreenBuffer);
-
-                game_sound_output_buffer soundBuffer = {};
-                soundBuffer.SamplesPerSecond = soundOutput.SamplesPerSecond;
-                soundBuffer.SampleCount = bytesToWrite / soundOutput.BytesPerSample;
-                soundBuffer.Samples = samples;
-
-                game.OutputSound(&gameMemory, &soundBuffer);
-
-                if (soundIsValid)
-                {
-                    win32_audio_fill_sound_buffer(&soundOutput, byteToLock, bytesToWrite, &soundBuffer);
-                }
-
-                win32_window_dimension dimension = win32_window_get_dimension(window);
-                win32_window_update(deviceContext, &GlobalBackBuffer, dimension.Width,
-                    dimension.Height, 0, 0, dimension.Width, dimension.Height);
-                
-                LARGE_INTEGER frameCounter = win32_get_wall_clock();
-                float secondsElapsedForFrame = win32_get_seconds_elapsed(lastFrameCounter, frameCounter);
-                lastFrameCounter = frameCounter;
-                
-                if (secondsElapsedForFrame < targetSecondsPerFrame)
-                {
-                    while (secondsElapsedForFrame < targetSecondsPerFrame)
+                    if (win32State.InputRecordingIndex)
                     {
-                        if (sleepIsGranular)
+                        win32_record_input(&win32State, newInput);
+                    }
+
+                    if (win32State.InputPlayingIndex)
+                    {
+                        win32_play_back_input(&win32State, newInput);
+                    }
+
+                    game.ProcessInput(&gameMemory, newInput);
+
+                    if (!win32State.InputPlayingIndex)
+                    {
+                        newInput->Keyboard.KeyCode = 0;
+                        newInput->Keyboard.Pressed = false;
+                        newInput->Keyboard.Released = false;
+                    }
+
+                    LARGE_INTEGER newTickCounter = win32_get_wall_clock();
+                    float passedTime = win32_get_seconds_elapsed(lastTickCounter, newTickCounter);
+                    lastTickCounter = newTickCounter;
+
+                    accumulator += passedTime;
+
+                    while (accumulator >= targetSecondsPerTick)
+                    {
+                        game.Tick(&gameMemory, targetSecondsPerTick);
+                        accumulator -= targetSecondsPerTick;
+                    }
+
+                    DWORD playCursor;
+                    DWORD writeCursor;
+                    DWORD byteToLock = 0;
+                    DWORD bytesToWrite = 0;
+
+                    bool soundIsValid = false;
+
+                    if (SUCCEEDED(GlobalSoundBuffer->GetCurrentPosition(&playCursor, &writeCursor)))
+                    {
+                        byteToLock = (soundOutput.RunningSampleIndex * soundOutput.BytesPerSample) % soundOutput.BufferSize;
+
+                        if (byteToLock > playCursor)
                         {
-                            DWORD sleepMS = (DWORD)(1000.0f * (targetSecondsPerFrame - secondsElapsedForFrame));
-                            if (sleepMS > 0)
-                            {
-                                Sleep(sleepMS);
-                            }
+                            bytesToWrite = soundOutput.BufferSize - byteToLock;
+                            bytesToWrite += playCursor;
+                        }
+                        else
+                        {
+                            bytesToWrite = playCursor - byteToLock;
                         }
 
-                        secondsElapsedForFrame = win32_get_seconds_elapsed(lastFrameCounter, win32_get_wall_clock());
+                        soundIsValid = true;
                     }
-                }
 
-                game_input* temp = newInput;
-                newInput = oldInput;
-                oldInput = temp;
+                    game_offscreen_buffer offScreenBuffer = {};
+
+                    offScreenBuffer.Width = GlobalBackBuffer.Width;
+                    offScreenBuffer.Height = GlobalBackBuffer.Height;
+                    offScreenBuffer.Pitch = GlobalBackBuffer.Pitch;
+                    offScreenBuffer.BytesPerPixel = GlobalBackBuffer.BytesPerPixel;
+                    offScreenBuffer.Data = GlobalBackBuffer.Data;
+
+                    game.Render(&gameMemory, &offScreenBuffer);
+
+                    game_sound_output_buffer soundBuffer = {};
+                    soundBuffer.SamplesPerSecond = soundOutput.SamplesPerSecond;
+                    soundBuffer.SampleCount = bytesToWrite / soundOutput.BytesPerSample;
+                    soundBuffer.Samples = samples;
+
+                    game.OutputSound(&gameMemory, &soundBuffer);
+
+                    if (soundIsValid)
+                    {
+                        win32_audio_fill_sound_buffer(&soundOutput, byteToLock, bytesToWrite, &soundBuffer);
+                    }
+
+                    win32_window_dimension dimension = win32_window_get_dimension(window);
+                    win32_window_update(deviceContext, &GlobalBackBuffer, dimension.Width,
+                        dimension.Height, 0, 0, dimension.Width, dimension.Height);
+
+                    LARGE_INTEGER frameCounter = win32_get_wall_clock();
+                    float secondsElapsedForFrame = win32_get_seconds_elapsed(lastFrameCounter, frameCounter);
+                    lastFrameCounter = frameCounter;
+
+                    if (secondsElapsedForFrame < targetSecondsPerFrame)
+                    {
+                        while (secondsElapsedForFrame < targetSecondsPerFrame)
+                        {
+                            if (sleepIsGranular)
+                            {
+                                DWORD sleepMS = (DWORD)(1000.0f * (targetSecondsPerFrame - secondsElapsedForFrame));
+                                if (sleepMS > 0)
+                                {
+                                    Sleep(sleepMS);
+                                }
+                            }
+
+                            secondsElapsedForFrame = win32_get_seconds_elapsed(lastFrameCounter, win32_get_wall_clock());
+                        }
+                    }
+
+                    game_input* temp = newInput;
+                    newInput = oldInput;
+                    oldInput = temp;
+                }
             }
         }
     }

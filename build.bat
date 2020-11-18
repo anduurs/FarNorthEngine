@@ -10,7 +10,7 @@ REM -EHa turns off c++ exception handling
 REM -Oi turn on compiler intrinsics
 set CommonCompilerFlags=-nologo -MTd -fp:fast -FC -GR- -EHa- -Oi -WX -W4 -wd4100 -wd4189
 set CommonLinkerFlags=-incremental:no -opt:ref
-set PlatformLinkerLibs=user32.lib Gdi32.lib
+set PlatformLinkerLibs=user32.lib Gdi32.lib winmm.lib
 
 set DebugCompilerFlags=-Od -Z7
 set DebugCompilerDefinitions=-DDEBUG_BUILD=1 -DPLATFORM_WIN32=1 
@@ -31,7 +31,7 @@ popd
 REM 64-bit Release build
 REM if not exist .\build\release\x64 mkdir .\build\release\x64
 REM pushd .\build\release\x64
-REM cl %ReleaseCompilerDefinitions% %ReleaseCompilerFlags% %CommonCompilerFlags% -FeGame ..\..\..\src\platform\win32\win32_main.cpp %SharedLib% /link %CommonLinkerFlags%
+REM cl %ReleaseCompilerDefinitions% %ReleaseCompilerFlags% %CommonCompilerFlags% -FeGame ..\..\..\src\game\fn_game.cpp %SharedLib% /link %CommonLinkerFlags%
 REM cl %ReleaseCompilerDefinitions% %ReleaseCompilerFlags% %CommonCompilerFlags% -FeWin64Game ..\..\..\src\platform\win32\win32_main.cpp /link %CommonLinkerFlags% %PlatformLinkerLibs%
 REM popd
 

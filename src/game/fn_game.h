@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../common/fn_common.h"
+#include "../platform/fn_platform.h"
+#include "fn_memory.h"
 #include "../math/fn_math.h"
 #include "fn_game_input.h"
-#include "../platform/fn_platform.h"
 
 struct game_offscreen_buffer
 {
@@ -21,14 +21,6 @@ struct game_sound_output_buffer
     int16* Samples;
 };
 
-struct memory_arena
-{
-    size_t Size;
-    size_t Used;
-
-    uint8* Base;
-};
-
 struct game_memory
 {
     bool IsInitialized;
@@ -41,8 +33,6 @@ struct game_memory
 
     uint64 TransientStorageSize;
     void* TransientStorage;
-
-    platform_api PlatformAPI;
 
     uint32 WindowWidth;
     uint32 WindowHeight;

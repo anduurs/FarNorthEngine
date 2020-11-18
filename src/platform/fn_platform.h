@@ -31,3 +31,5 @@ struct platform_api
 
     platform_debug_log* PlatformDebugLog;
 };
+
+global_variable platform_api PlatformAPI;
