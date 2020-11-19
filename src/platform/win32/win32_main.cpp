@@ -422,8 +422,81 @@ inline float win32_get_seconds_elapsed(LARGE_INTEGER start, LARGE_INTEGER end)
     return ((float)(end.QuadPart - start.QuadPart) / (float)GlobalPerfCountFrequency);
 }
 
-int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR commandLine, int showCode)
+struct work_queue_entry
 {
+    char* StringToPrint;
+};
+
+global_variable uint32 NextEntryToPrint;
+global_variable uint32 EntryCount;
+work_queue_entry Entries[256];
+
+internal void push_string(char* s)
+{
+    assert(EntryCount < array_length(Entries));
+    work_queue_entry* entry = Entries + EntryCount++;
+    entry->StringToPrint = s;
+}
+
+struct win32_thread_info
+{
+    int32 LogicalThreadIndex;
+};
+
+DWORD WINAPI ThreadProc(_In_ LPVOID lpParameter)
+{
+    win32_thread_info* threadInfo = (win32_thread_info*)lpParameter;
+
+    while (GlobalApplicationRunning)
+    {
+        if (NextEntryToPrint < EntryCount)
+        {
+            int entryIndex = NextEntryToPrint++;
+            work_queue_entry* entry = Entries + entryIndex;
+            char buffer[256];
+            wsprintf(buffer, "Thread %u: %s\n", threadInfo->LogicalThreadIndex, entry->StringToPrint);
+            OutputDebugString(buffer);
+        }
+    }
+        
+    return 0;
+}
+
+int32 WINAPI WinMain
+(
+    _In_ HINSTANCE hInstance, 
+    _In_opt_ HINSTANCE hPrevInstance, 
+    _In_ LPSTR commandLine, 
+    _In_ int showCode
+)
+{
+    GlobalApplicationRunning = true;
+
+    SYSTEM_INFO systemInfo;
+    GetSystemInfo(&systemInfo);
+    const DWORD numOfThreads = systemInfo.dwNumberOfProcessors;
+    win32_thread_info threadInfos[16];
+
+    for (DWORD i = 0; i < numOfThreads; i++)
+    {
+        win32_thread_info* threadInfo = threadInfos + i;
+        threadInfo->LogicalThreadIndex = i;
+        DWORD threadId;
+        HANDLE threadHandle = CreateThread(0, 0, ThreadProc, threadInfo, 0, &threadId);
+    }
+
+    push_string("Work 0");
+    push_string("Work 1");
+    push_string("Work 2");
+    push_string("Work 3");
+    push_string("Work 4");
+    push_string("Work 5");
+    push_string("Work 6");
+    push_string("Work 7");
+    push_string("Work 8");
+    push_string("Work 9");
+    push_string("Work 10");
+
     LARGE_INTEGER perfCountFrequencyResult;
     QueryPerformanceFrequency(&perfCountFrequencyResult);
 
@@ -537,7 +610,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 gameMemory.WindowHeight = windowHeight;
 
                 win32_input_load_xinput();
-                
                 win32_audio_init_dsound(window, soundOutput.SamplesPerSecond, soundOutput.BufferSize);
                 win32_audio_clear_sound_buffer(&soundOutput);
 
@@ -561,8 +633,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
                 float targetFrameRate = 60;
                 float targetSecondsPerFrame = 1.0f / targetFrameRate;
-
-                GlobalApplicationRunning = true;
 
                 while (GlobalApplicationRunning)
                 {

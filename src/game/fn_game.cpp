@@ -3,7 +3,7 @@
 #include "fn_memory.cpp"
 #include "fn_renderer.cpp"
 
-extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
+FN_GAME_API FN_GAME_INIT(fn_game_init)
 {
     assert(sizeof(game_state) <= memory->PersistentStorageSize);
 
@@ -23,7 +23,7 @@ extern "C" __declspec(dllexport) FN_GAME_INIT(fn_game_init)
     memory->IsInitialized = true;
 }
 
-extern "C" __declspec(dllexport) FN_GAME_PROCESS_INPUT(fn_game_process_input)
+FN_GAME_API FN_GAME_PROCESS_INPUT(fn_game_process_input)
 {
     assert(sizeof(game_state) <= memory->PersistentStorageSize);
 
@@ -45,7 +45,7 @@ extern "C" __declspec(dllexport) FN_GAME_PROCESS_INPUT(fn_game_process_input)
     }
 }
 
-extern "C" __declspec(dllexport) FN_GAME_TICK(fn_game_tick)
+FN_GAME_API FN_GAME_TICK(fn_game_tick)
 {
     assert(sizeof(game_state) <= memory->PersistentStorageSize);
 
@@ -54,7 +54,7 @@ extern "C" __declspec(dllexport) FN_GAME_TICK(fn_game_tick)
     
 }
 
-extern "C" __declspec(dllexport) FN_GAME_RENDER(fn_game_render)
+FN_GAME_API FN_GAME_RENDER(fn_game_render)
 {
     assert(sizeof(game_state) <= memory->PersistentStorageSize);
 
@@ -64,7 +64,7 @@ extern "C" __declspec(dllexport) FN_GAME_RENDER(fn_game_render)
     fn_renderer_draw_quad(offScreenBuffer, 200, 100, 80, 80, 0x00, 0xFF, 0xFF);
 }
 
-extern "C" __declspec(dllexport) FN_GAME_OUTPUT_SOUND(fn_game_output_sound)
+FN_GAME_API FN_GAME_OUTPUT_SOUND(fn_game_output_sound)
 {
     assert(sizeof(game_state) <= memory->PersistentStorageSize);
 

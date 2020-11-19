@@ -139,6 +139,9 @@ struct game_state
 };
 
 // Services that the game provides to the platform layer
+
+#define FN_GAME_API extern "C" __declspec(dllexport)
+
 #define FN_GAME_INIT(name) void name(game_memory* memory)
 typedef FN_GAME_INIT(game_init);
 FN_GAME_INIT(fn_game_init_stub){}
