@@ -4,6 +4,7 @@
 
 #include <windows.h>
 #include <stdio.h>
+#include <intrin.h>
 
 struct win32_game_code
 {
@@ -47,6 +48,6 @@ struct win32_window_dimension
     int32 Height;
 };
 
-global_variable volatile bool GlobalApplicationRunning;
+global_variable bool volatile GlobalApplicationRunning;
 global_variable win32_offscreen_buffer GlobalBackBuffer;
 global_variable uint64 GlobalPerfCountFrequency;

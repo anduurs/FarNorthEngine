@@ -427,35 +427,70 @@ struct work_queue_entry
     char* StringToPrint;
 };
 
-global_variable uint32 NextEntryToPrint;
-global_variable uint32 EntryCount;
+struct win32_job_queue
+{
+    uint32 volatile JobCompletionCount;
+    uint32 volatile NextJobToRun;
+    uint32 volatile JobCount;
+};
+
+global_variable uint32 volatile EntryCompletionCount;
+global_variable uint32 volatile NextEntryToPrint;
+global_variable uint32 volatile EntryCount;
 work_queue_entry Entries[256];
 
-internal void push_string(char* s)
+#define CompletePastWritesBeforeFutureWrites _WriteBarrier(); _mm_sfence()
+#define CompletePastReadsBeforeFutureReads _ReadBarrier()
+
+internal void push_string(HANDLE semaphore, char* s)
 {
     assert(EntryCount < array_length(Entries));
-    work_queue_entry* entry = Entries + EntryCount++;
+    work_queue_entry* entry = Entries + EntryCount;
     entry->StringToPrint = s;
+
+    // Stops the compiler and the cpu from doing reordering of memory store instruction.
+    CompletePastWritesBeforeFutureWrites;
+
+    ++EntryCount;
+
+    ReleaseSemaphore(semaphore, 1, 0);
 }
 
 struct win32_thread_info
 {
-    int32 LogicalThreadIndex;
+    HANDLE SemaphoreHandle;
+    uint32 LogicalThreadIndex;
 };
 
-DWORD WINAPI ThreadProc(_In_ LPVOID lpParameter)
+inline bool DoWork(uint32 logicalThreadIndex)
+{
+    bool didWork = false;
+
+    if (NextEntryToPrint < EntryCount)
+    {
+        int entryIndex = InterlockedIncrement((LONG volatile*)&NextEntryToPrint) - 1;
+        //stop compiler from doing memory reads re-ordering optimzations
+        CompletePastReadsBeforeFutureReads;
+        work_queue_entry* entry = Entries + entryIndex;
+        char buffer[256];
+        wsprintf(buffer, "Thread %u: %s\n", logicalThreadIndex, entry->StringToPrint);
+        OutputDebugString(buffer);
+        InterlockedIncrement((LONG volatile*)&EntryCompletionCount);
+        didWork = true;
+    }
+
+    return didWork;
+}
+
+DWORD WINAPI ThreadProc(LPVOID lpParameter)
 {
     win32_thread_info* threadInfo = (win32_thread_info*)lpParameter;
 
     while (GlobalApplicationRunning)
     {
-        if (NextEntryToPrint < EntryCount)
+        if (!DoWork(threadInfo->LogicalThreadIndex))
         {
-            int entryIndex = NextEntryToPrint++;
-            work_queue_entry* entry = Entries + entryIndex;
-            char buffer[256];
-            wsprintf(buffer, "Thread %u: %s\n", threadInfo->LogicalThreadIndex, entry->StringToPrint);
-            OutputDebugString(buffer);
+            WaitForSingleObjectEx(threadInfo->SemaphoreHandle, INFINITE, FALSE);
         }
     }
         
@@ -464,38 +499,55 @@ DWORD WINAPI ThreadProc(_In_ LPVOID lpParameter)
 
 int32 WINAPI WinMain
 (
-    _In_ HINSTANCE hInstance, 
-    _In_opt_ HINSTANCE hPrevInstance, 
-    _In_ LPSTR commandLine, 
-    _In_ int showCode
+    HINSTANCE hInstance, 
+    HINSTANCE hPrevInstance, 
+    LPSTR commandLine, 
+    int showCode
 )
 {
     GlobalApplicationRunning = true;
 
     SYSTEM_INFO systemInfo;
     GetSystemInfo(&systemInfo);
-    const DWORD numOfThreads = systemInfo.dwNumberOfProcessors;
-    win32_thread_info threadInfos[16];
 
-    for (DWORD i = 0; i < numOfThreads; i++)
+    win32_thread_info threadInfos[16];
+    uint32 threadCount = array_length(threadInfos);
+    HANDLE semaphoreHandle = CreateSemaphoreEx(0, 0, threadCount, 0, 0, SEMAPHORE_ALL_ACCESS);
+
+    for (uint32 i = 0; i < threadCount; i++)
     {
         win32_thread_info* threadInfo = threadInfos + i;
+        threadInfo->SemaphoreHandle = semaphoreHandle;
         threadInfo->LogicalThreadIndex = i;
         DWORD threadId;
         HANDLE threadHandle = CreateThread(0, 0, ThreadProc, threadInfo, 0, &threadId);
     }
 
-    push_string("Work 0");
-    push_string("Work 1");
-    push_string("Work 2");
-    push_string("Work 3");
-    push_string("Work 4");
-    push_string("Work 5");
-    push_string("Work 6");
-    push_string("Work 7");
-    push_string("Work 8");
-    push_string("Work 9");
-    push_string("Work 10");
+    push_string(semaphoreHandle, "Work A0");
+    push_string(semaphoreHandle, "Work A1");
+    push_string(semaphoreHandle, "Work A2");
+    push_string(semaphoreHandle, "Work A3");
+    push_string(semaphoreHandle, "Work A4");
+    push_string(semaphoreHandle, "Work A5");
+    push_string(semaphoreHandle, "Work A6");
+    push_string(semaphoreHandle, "Work A7");
+    push_string(semaphoreHandle, "Work A8");
+    push_string(semaphoreHandle, "Work A9");
+    push_string(semaphoreHandle, "Work A10");
+
+    push_string(semaphoreHandle, "Work B0");
+    push_string(semaphoreHandle, "Work B1");
+    push_string(semaphoreHandle, "Work B2");
+    push_string(semaphoreHandle, "Work B3");
+    push_string(semaphoreHandle, "Work B4");
+    push_string(semaphoreHandle, "Work B5");
+    push_string(semaphoreHandle, "Work B6");
+    push_string(semaphoreHandle, "Work B7");
+    push_string(semaphoreHandle, "Work B8");
+    push_string(semaphoreHandle, "Work B9");
+    push_string(semaphoreHandle, "Work B10");
+
+    while (EntryCount != EntryCompletionCount){ DoWork(15); }
 
     LARGE_INTEGER perfCountFrequencyResult;
     QueryPerformanceFrequency(&perfCountFrequencyResult);

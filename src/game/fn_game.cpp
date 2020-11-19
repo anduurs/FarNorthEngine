@@ -3,6 +3,9 @@
 #include "fn_memory.cpp"
 #include "fn_renderer.cpp"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "../../dependencies/stb_image/stb_image.h"
+
 FN_GAME_API FN_GAME_INIT(fn_game_init)
 {
     assert(sizeof(game_state) <= memory->PersistentStorageSize);
