@@ -64,7 +64,7 @@ FN_GAME_API FN_GAME_RENDER(fn_game_render)
     game_state* gameState = (game_state*)memory->PersistentStorage;
 
     fn_renderer_clear_screen(offScreenBuffer, 0x00, 0x00, 0x00);
-    fn_renderer_draw_quad(offScreenBuffer, 200, 100, 80, 80, 0x00, 0xFF, 0xFF);
+    fn_renderer_draw_quad(offScreenBuffer, 200, 100, 80, 80, 0xFF, 0x00, 0xFF);
 }
 
 FN_GAME_API FN_GAME_OUTPUT_SOUND(fn_game_output_sound)
@@ -73,7 +73,7 @@ FN_GAME_API FN_GAME_OUTPUT_SOUND(fn_game_output_sound)
 
     game_state* gameState = (game_state*)memory->PersistentStorage;
 
-    int16 toneVolume = 0;
+    int16 toneVolume = 1000;
     int32 toneHz = 256;
     int wavePeriod = soundBuffer->SamplesPerSecond / toneHz;
 

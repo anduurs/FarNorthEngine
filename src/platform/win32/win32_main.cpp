@@ -111,7 +111,7 @@ internal void win32_window_init_offscreen_buffer(win32_offscreen_buffer* buffer,
     buffer->Pitch = width * buffer->BytesPerPixel;
 }
 
-internal void win32_window_update(HDC deviceContext, win32_offscreen_buffer* buffer,
+internal void win32_window_blit_to_screen(HDC deviceContext, win32_offscreen_buffer* buffer,
     int32 windowWidth, int32 windowHeight,
     int32 x, int32 y, int32 width, int32 height)
 {
@@ -160,7 +160,7 @@ internal LRESULT CALLBACK win32_window_callback(HWND window, UINT message, WPARA
             int32 width = paint.rcPaint.right - paint.rcPaint.left;
             int32 height = paint.rcPaint.bottom - paint.rcPaint.top;
             win32_window_dimension dimension = win32_window_get_dimension(window);
-            win32_window_update(deviceContext, &GlobalBackBuffer, dimension.Width, dimension.Height, x, y, width, height);
+            win32_window_blit_to_screen(deviceContext, &GlobalBackBuffer, dimension.Width, dimension.Height, x, y, width, height);
             EndPaint(window, &paint);
         } break;
         
@@ -693,7 +693,7 @@ int32 WINAPI WinMain
                     if (CompareFileTime(&newDLLWriteTime, &game.LastDLLWriteTime) != 0)
                     {
                         win32_unload_game_code(&game);
-                        game = win32_load_game_code(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath, DLLWriteTime);
+                        game = win32_load_game_code(sourceGameCodeDLLFullPath, tempGameCodeDLLFullPath, newDLLWriteTime);
                     }
 
                     win32_process_messages(window, &win32State, newInput);
@@ -776,10 +776,6 @@ int32 WINAPI WinMain
                         win32_audio_fill_sound_buffer(&soundOutput, byteToLock, bytesToWrite, &soundBuffer);
                     }
 
-                    win32_window_dimension dimension = win32_window_get_dimension(window);
-                    win32_window_update(deviceContext, &GlobalBackBuffer, dimension.Width,
-                        dimension.Height, 0, 0, dimension.Width, dimension.Height);
-
                     LARGE_INTEGER frameCounter = win32_get_wall_clock();
                     float secondsElapsedForFrame = win32_get_seconds_elapsed(lastFrameCounter, frameCounter);
                     lastFrameCounter = frameCounter;
@@ -800,6 +796,16 @@ int32 WINAPI WinMain
                             secondsElapsedForFrame = win32_get_seconds_elapsed(lastFrameCounter, win32_get_wall_clock());
                         }
                     }
+
+                    win32_window_dimension dimension = win32_window_get_dimension(window);
+
+                    win32_window_blit_to_screen(
+                        deviceContext, 
+                        &GlobalBackBuffer, 
+                        dimension.Width,
+                        dimension.Height, 
+                        0, 0, dimension.Width, dimension.Height
+                    );
 
                     game_input* temp = newInput;
                     newInput = oldInput;
