@@ -1,6 +1,7 @@
 #include "win32_main.h"
 #include "win32_input.cpp"
 #include "win32_audio.cpp"
+#include "win32_thread.cpp"
 
 FN_PLATFORM_FILE_WRITE(PlatformWriteFile)
 {
@@ -422,79 +423,11 @@ inline float win32_get_seconds_elapsed(LARGE_INTEGER start, LARGE_INTEGER end)
     return ((float)(end.QuadPart - start.QuadPart) / (float)GlobalPerfCountFrequency);
 }
 
-struct work_queue_entry
+internal FN_PLATFORM_JOB_QUEUE_CALLBACK(job_callback)
 {
-    char* StringToPrint;
-};
-
-struct win32_job_queue
-{
-    uint32 volatile JobCompletionCount;
-    uint32 volatile NextJobToRun;
-    uint32 volatile JobCount;
-};
-
-global_variable uint32 volatile EntryCompletionCount;
-global_variable uint32 volatile NextEntryToPrint;
-global_variable uint32 volatile EntryCount;
-work_queue_entry Entries[256];
-
-#define CompletePastWritesBeforeFutureWrites _WriteBarrier(); _mm_sfence()
-#define CompletePastReadsBeforeFutureReads _ReadBarrier()
-
-internal void push_string(HANDLE semaphore, char* s)
-{
-    assert(EntryCount < array_length(Entries));
-    work_queue_entry* entry = Entries + EntryCount;
-    entry->StringToPrint = s;
-
-    // Stops the compiler and the cpu from doing reordering of memory store instruction.
-    CompletePastWritesBeforeFutureWrites;
-
-    ++EntryCount;
-
-    ReleaseSemaphore(semaphore, 1, 0);
-}
-
-struct win32_thread_info
-{
-    HANDLE SemaphoreHandle;
-    uint32 LogicalThreadIndex;
-};
-
-inline bool DoWork(uint32 logicalThreadIndex)
-{
-    bool didWork = false;
-
-    if (NextEntryToPrint < EntryCount)
-    {
-        int entryIndex = InterlockedIncrement((LONG volatile*)&NextEntryToPrint) - 1;
-        //stop compiler from doing memory reads re-ordering optimzations
-        CompletePastReadsBeforeFutureReads;
-        work_queue_entry* entry = Entries + entryIndex;
-        char buffer[256];
-        wsprintf(buffer, "Thread %u: %s\n", logicalThreadIndex, entry->StringToPrint);
-        OutputDebugString(buffer);
-        InterlockedIncrement((LONG volatile*)&EntryCompletionCount);
-        didWork = true;
-    }
-
-    return didWork;
-}
-
-DWORD WINAPI ThreadProc(LPVOID lpParameter)
-{
-    win32_thread_info* threadInfo = (win32_thread_info*)lpParameter;
-
-    while (GlobalApplicationRunning)
-    {
-        if (!DoWork(threadInfo->LogicalThreadIndex))
-        {
-            WaitForSingleObjectEx(threadInfo->SemaphoreHandle, INFINITE, FALSE);
-        }
-    }
-        
-    return 0;
+    char buffer[256];
+    wsprintf(buffer, "Thread %u: %s\n", GetCurrentThreadId(), (char*)data);
+    OutputDebugString(buffer);
 }
 
 int32 WINAPI WinMain
@@ -505,50 +438,6 @@ int32 WINAPI WinMain
     int showCode
 )
 {
-    GlobalApplicationRunning = true;
-
-    SYSTEM_INFO systemInfo;
-    GetSystemInfo(&systemInfo);
-
-    win32_thread_info threadInfos[16];
-    uint32 threadCount = array_length(threadInfos);
-    HANDLE semaphoreHandle = CreateSemaphoreEx(0, 0, threadCount, 0, 0, SEMAPHORE_ALL_ACCESS);
-
-    for (uint32 i = 0; i < threadCount; i++)
-    {
-        win32_thread_info* threadInfo = threadInfos + i;
-        threadInfo->SemaphoreHandle = semaphoreHandle;
-        threadInfo->LogicalThreadIndex = i;
-        DWORD threadId;
-        HANDLE threadHandle = CreateThread(0, 0, ThreadProc, threadInfo, 0, &threadId);
-    }
-
-    push_string(semaphoreHandle, "Work A0");
-    push_string(semaphoreHandle, "Work A1");
-    push_string(semaphoreHandle, "Work A2");
-    push_string(semaphoreHandle, "Work A3");
-    push_string(semaphoreHandle, "Work A4");
-    push_string(semaphoreHandle, "Work A5");
-    push_string(semaphoreHandle, "Work A6");
-    push_string(semaphoreHandle, "Work A7");
-    push_string(semaphoreHandle, "Work A8");
-    push_string(semaphoreHandle, "Work A9");
-    push_string(semaphoreHandle, "Work A10");
-
-    push_string(semaphoreHandle, "Work B0");
-    push_string(semaphoreHandle, "Work B1");
-    push_string(semaphoreHandle, "Work B2");
-    push_string(semaphoreHandle, "Work B3");
-    push_string(semaphoreHandle, "Work B4");
-    push_string(semaphoreHandle, "Work B5");
-    push_string(semaphoreHandle, "Work B6");
-    push_string(semaphoreHandle, "Work B7");
-    push_string(semaphoreHandle, "Work B8");
-    push_string(semaphoreHandle, "Work B9");
-    push_string(semaphoreHandle, "Work B10");
-
-    while (EntryCount != EntryCompletionCount){ DoWork(15); }
-
     LARGE_INTEGER perfCountFrequencyResult;
     QueryPerformanceFrequency(&perfCountFrequencyResult);
 
@@ -620,7 +509,7 @@ int32 WINAPI WinMain
 
             gameMemory.PersistentStorageSize = megabytes(128);
             gameMemory.TemporaryStorageSize = megabytes(64);
-            gameMemory.TransientStorageSize = gigabytes((uint64)1);
+            gameMemory.TransientStorageSize = gigabytes(1);
 
             uint64 totalSize = gameMemory.PersistentStorageSize + gameMemory.TemporaryStorageSize + gameMemory.TransientStorageSize;
 
@@ -653,10 +542,46 @@ int32 WINAPI WinMain
                 gameMemory.TransientStorage && 
                 samples)
             {
+                GlobalApplicationRunning = true;
+
+                platform_job_queue queue = {};
+
+                win32_thread_info* workerThreads = win32_thread_create_workers(&queue);
+
+                win32_thread_schedule_job(&queue, job_callback, "Work A0");
+                win32_thread_schedule_job(&queue, job_callback, "Work A1");
+                win32_thread_schedule_job(&queue, job_callback, "Work A2");
+                win32_thread_schedule_job(&queue, job_callback, "Work A3");
+                win32_thread_schedule_job(&queue, job_callback, "Work A4");
+                win32_thread_schedule_job(&queue, job_callback, "Work A5");
+                win32_thread_schedule_job(&queue, job_callback, "Work A6");
+                win32_thread_schedule_job(&queue, job_callback, "Work A7");
+                win32_thread_schedule_job(&queue, job_callback, "Work A8");
+                win32_thread_schedule_job(&queue, job_callback, "Work A9");
+
+                Sleep(1000);
+
+                win32_thread_schedule_job(&queue, job_callback, "Work B0");
+                win32_thread_schedule_job(&queue, job_callback, "Work B1");
+                win32_thread_schedule_job(&queue, job_callback, "Work B2");
+                win32_thread_schedule_job(&queue, job_callback, "Work B3");
+                win32_thread_schedule_job(&queue, job_callback, "Work B4");
+                win32_thread_schedule_job(&queue, job_callback, "Work B5");
+                win32_thread_schedule_job(&queue, job_callback, "Work B6");
+                win32_thread_schedule_job(&queue, job_callback, "Work B7");
+                win32_thread_schedule_job(&queue, job_callback, "Work B8");
+                win32_thread_schedule_job(&queue, job_callback, "Work B9");
+
+                win32_thread_complete_all_jobs(&queue);
+
                 PlatformAPI.WriteFile = PlatformWriteFile;
                 PlatformAPI.FreeFile = PlatformFreeFile;
                 PlatformAPI.ReadFile = PlatformReadFile;
                 PlatformAPI.DebugLog = PlatformDebugLog;
+
+                PlatformAPI.HighPriorityQueue = &queue;
+                PlatformAPI.ScheduleJob = win32_thread_schedule_job;
+                PlatformAPI.CompleteAllJobs = win32_thread_complete_all_jobs;
 
                 gameMemory.WindowWidth = windowWidth;
                 gameMemory.WindowHeight = windowHeight;
@@ -683,7 +608,15 @@ int32 WINAPI WinMain
                 float targetSecondsPerTick = 1.0f / targetTickRate;
                 float accumulator = 0.0f;
 
-                float targetFrameRate = 60;
+                int monitorRefreshRate = 60;
+                HDC refreshDC = GetDC(window);
+                int win32RefreshRate = GetDeviceCaps(refreshDC, VREFRESH);
+                ReleaseDC(window, refreshDC);
+
+                if (win32RefreshRate > 1)
+                    monitorRefreshRate = win32RefreshRate;
+
+                float targetFrameRate = (float)monitorRefreshRate;
                 float targetSecondsPerFrame = 1.0f / targetFrameRate;
 
                 while (GlobalApplicationRunning)
@@ -759,7 +692,6 @@ int32 WINAPI WinMain
                     offScreenBuffer.Width = GlobalBackBuffer.Width;
                     offScreenBuffer.Height = GlobalBackBuffer.Height;
                     offScreenBuffer.Pitch = GlobalBackBuffer.Pitch;
-                    offScreenBuffer.BytesPerPixel = GlobalBackBuffer.BytesPerPixel;
                     offScreenBuffer.Data = GlobalBackBuffer.Data;
 
                     game.Render(&gameMemory, &offScreenBuffer);
@@ -804,7 +736,9 @@ int32 WINAPI WinMain
                         &GlobalBackBuffer, 
                         dimension.Width,
                         dimension.Height, 
-                        0, 0, dimension.Width, dimension.Height
+                        0, 0, 
+                        dimension.Width, 
+                        dimension.Height
                     );
 
                     game_input* temp = newInput;

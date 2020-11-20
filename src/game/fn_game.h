@@ -10,7 +10,6 @@ struct game_offscreen_buffer
     int32 Width;
     int32 Height;
     int32 Pitch;
-    int32 BytesPerPixel;
     void* Data;
 };
 

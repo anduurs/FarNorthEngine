@@ -4,7 +4,6 @@
 
 #include <windows.h>
 #include <stdio.h>
-#include <intrin.h>
 
 struct win32_game_code
 {

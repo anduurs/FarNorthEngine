@@ -2,15 +2,31 @@
 
 #include <stdint.h>
 
-#define kilobytes(Value) ((Value)*1024LL)
-#define megabytes(Value) ((kilobytes(Value))*1024LL)
-#define gigabytes(Value) ((megabytes(Value))*1024LL)
+// Compilers
+#if !defined(COMPILER_MSVC)
+#if _MSC_VER
+#define COMPILER_MSVC 1
+#else
+#define COMPILER_MSVC 0
+#endif
+#endif
+
+#if COMPILER_MSVC
+#include <intrin.h>
+#endif
 
 #define internal static
 #define local_persist static
 #define global_variable static  
 
 #define array_length(a) (sizeof(a)/sizeof(a[0]))
+
+#define kilobytes(number) ((number)*1024ull)
+#define megabytes(number) (kilobytes(number) * 1024ull)
+#define gigabytes(number) (megabytes(number) * 1024ull)
+#define terabytes(number) (gigabytes(number) * 1024ull)
+#define minimum(a, b) ((a) < (b) ? (a) : (b))
+#define maximum(a, b) ((a) > (b) ? (a) : (b))
 
 #if DEBUG_BUILD
 #define assert(Expression) if (!(Expression)) {*(int*)0 = 0;}
