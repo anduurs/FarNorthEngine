@@ -1,10 +1,13 @@
 #include "fn_game.h"
 
-#include "fn_memory.cpp"
-#include "fn_renderer.cpp"
+enum fn_input_action_type
+{
+    MOVE_FORWARD,
+    MOVE_BACK,
+    MOVE_RIGHT,
+    MOVE_LEFT
+};
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "../../dependencies/stb_image/stb_image.h"
 
 FN_GAME_API FN_GAME_INIT(fn_game_init)
 {
@@ -12,17 +15,25 @@ FN_GAME_API FN_GAME_INIT(fn_game_init)
 
     game_state* gameState = (game_state*)memory->PersistentStorage;
 
-    fn_mem_arena_init(
+    fn_memory_initialize(
         &gameState->WorldArena, 
         memory->PersistentStorageSize - sizeof(game_state), 
         (uint8*)memory->PersistentStorage + sizeof(game_state)
     );
 
-    gameState->GameWorld = fn_mem_arena_reserve(&gameState->WorldArena, fn_world);
+    gameState->GameWorld = fn_memory_reserve_struct(&gameState->WorldArena, fn_world);
     fn_world* gameWorld = gameState->GameWorld;
-    gameWorld->Chunks = fn_mem_arena_reserve(&gameState->WorldArena, fn_world_chunk);
+
+    gameWorld->Chunks = fn_memory_reserve_struct(&gameState->WorldArena, fn_world_chunk);
     fn_world_chunk* chunks = gameWorld->Chunks;
-    
+
+    gameWorld->Player = fn_memory_reserve_struct(&gameState->WorldArena, fn_player);
+    fn_player* player = gameWorld->Player;
+
+    player->SpeedFactor = 70.0f;
+    player->Position.x = 50.0f;
+    player->Position.y = 50.0f;
+
     memory->IsInitialized = true;
 }
 
@@ -32,19 +43,71 @@ FN_GAME_API FN_GAME_PROCESS_INPUT(fn_game_process_input)
 
     game_state* gameState = (game_state*)memory->PersistentStorage;
 
+    fn_world* gameWorld = gameState->GameWorld;
+    fn_player* player = gameWorld->Player;
+
     game_controller_input* gamepad = &input->Gamepads[0];
+    game_keyboard_input* keyboard = &input->Keyboard;
+    game_mouse_input* mouse = &input->Mouse;
 
-    if (gamepad->IsConnected)
+    if (keyboard->KeyCode == FN_KEY_D)
     {
-        if (gamepad->IsAnalog)
+        if (keyboard->Pressed)
         {
+            player->Velocity.x = 1.0f;
+            memory->PlatformAPI->DebugLog("D PRESSED");
+        }
 
+        if (keyboard->Released)
+        {
+            player->Velocity.x = 0.0f;
+            memory->PlatformAPI->DebugLog("D RELEASED");
         }
     }
-    else
+
+    if (keyboard->KeyCode == FN_KEY_A)
     {
-        game_keyboard_input* keyboard = &input->Keyboard;
-        game_mouse_input* mouse = &input->Mouse;
+        if (keyboard->Pressed)
+        {
+            player->Velocity.x = -1.0f;
+            memory->PlatformAPI->DebugLog("A PRESSED");
+        }
+
+        if (keyboard->Released)
+        {
+            player->Velocity.x = 0.0f;
+            memory->PlatformAPI->DebugLog("A RELEASED");
+        }
+    }
+
+    if (keyboard->KeyCode == FN_KEY_W)
+    {
+        if (keyboard->Pressed)
+        {
+            player->Velocity.y = -1.0f;
+            memory->PlatformAPI->DebugLog("W PRESSED");
+        }
+
+        if (keyboard->Released)
+        {
+            player->Velocity.y = 0.0f;
+            memory->PlatformAPI->DebugLog("W RELEASED");
+        }
+    }
+
+    if (keyboard->KeyCode == FN_KEY_S)
+    {
+        if (keyboard->Pressed)
+        {
+            player->Velocity.y = 1.0f;
+            memory->PlatformAPI->DebugLog("S PRESSED");
+        }
+
+        if (keyboard->Released)
+        {
+            player->Velocity.y = 0.0f;
+            memory->PlatformAPI->DebugLog("S RELEASED");
+        }
     }
 }
 
@@ -54,7 +117,22 @@ FN_GAME_API FN_GAME_TICK(fn_game_tick)
 
     game_state* gameState = (game_state*)memory->PersistentStorage;
 
-    
+
+}
+
+FN_GAME_API FN_GAME_UPDATE(fn_game_update)
+{
+    assert(sizeof(game_state) <= memory->PersistentStorageSize);
+
+    game_state* gameState = (game_state*)memory->PersistentStorage;
+
+    fn_world* gameWorld = gameState->GameWorld;
+    fn_player* player = gameWorld->Player;
+
+    float dt = memory->DeltaTime;
+
+    player->Position.x += player->Velocity.x * dt * player->SpeedFactor;
+    player->Position.y += player->Velocity.y * dt * player->SpeedFactor;
 }
 
 FN_GAME_API FN_GAME_RENDER(fn_game_render)
@@ -63,8 +141,11 @@ FN_GAME_API FN_GAME_RENDER(fn_game_render)
 
     game_state* gameState = (game_state*)memory->PersistentStorage;
 
+    fn_world* gameWorld = gameState->GameWorld;
+    fn_player* player = gameWorld->Player;
+
     fn_renderer_clear_screen(offScreenBuffer, 0x00, 0x00, 0x00);
-    fn_renderer_draw_quad(offScreenBuffer, 200, 100, 80, 80, 0xFF, 0x00, 0xFF);
+    fn_renderer_draw_quad(offScreenBuffer, (int32)player->Position.x, (int32)player->Position.y, 80, 80, 0x00, 0xFF, 0xFF);
 }
 
 FN_GAME_API FN_GAME_OUTPUT_SOUND(fn_game_output_sound)

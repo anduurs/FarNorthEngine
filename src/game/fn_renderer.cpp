@@ -1,3 +1,5 @@
+
+
 internal void fn_renderer_clear_screen(game_offscreen_buffer* buffer, uint8 red, uint8 green, uint8 blue)
 {
     uint8* row = (uint8*)buffer->Data;

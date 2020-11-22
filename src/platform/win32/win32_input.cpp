@@ -1,4 +1,22 @@
-#include "win32_input.h"
+#include <xinput.h>
+
+#define XINPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE* pState)
+typedef XINPUT_GET_STATE(xinput_get_state);
+XINPUT_GET_STATE(XInputGetStateStub)
+{
+    return ERROR_DEVICE_NOT_CONNECTED;
+}
+global_variable xinput_get_state* XInputGetState_ = XInputGetStateStub;
+#define XInputGetState XInputGetState_
+
+#define XINPUT_SET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_VIBRATION* pVibration)
+typedef XINPUT_SET_STATE(xinput_set_state);
+XINPUT_SET_STATE(XInputSetStateStub)
+{
+    return ERROR_DEVICE_NOT_CONNECTED;
+}
+global_variable xinput_set_state* XInputSetState_ = XInputSetStateStub;
+#define XInputSetState XInputSetState_
 
 internal void win32_input_load_xinput()
 {
@@ -118,6 +136,96 @@ internal void win32_input_poll_gamepad(game_input* oldInput, game_input* newInpu
         else
         {
             newGamepad->IsConnected = false;
+        }
+    }
+}
+
+internal void win32_input_process_messages(HWND window, win32_state* win32State, game_input* input)
+{
+    MSG message;
+
+    while (PeekMessage(&message, 0, 0, 0, PM_REMOVE))
+    {
+        switch (message.message)
+        {
+        case WM_QUIT:
+        {
+            GlobalApplicationRunning = false;
+        } break;
+
+        case WM_MOUSEMOVE:
+        {
+            POINT mousePosition;
+            GetCursorPos(&mousePosition);
+            ScreenToClient(window, &mousePosition);
+
+            input->Mouse.MouseCursorX = (float)mousePosition.x;
+            input->Mouse.MouseCursorY = (float)mousePosition.y;
+            //char printBuffer[256];
+            //sprintf_s(printBuffer, "%f %f \n", (float)mousePosition.x, (float)mousePosition.y);
+            //OutputDebugStringA(printBuffer);
+        } break;
+
+        case WM_SYSKEYDOWN:
+        case WM_KEYDOWN:
+        case WM_SYSKEYUP:
+        case WM_KEYUP:
+        {
+            uint32 vkCode = (uint32)message.wParam;
+
+            bool wasDown = ((message.lParam & (1 << 30)) != 0);
+            bool isDown = ((message.lParam & (1 << 31)) == 0);
+
+            if (isDown)
+            {
+                bool altKeyWasDown = message.lParam & (1 << 29);
+
+                if (vkCode == VK_F4 && altKeyWasDown)
+                {
+                    GlobalApplicationRunning = false;
+                }
+
+                if (vkCode == VK_RETURN && altKeyWasDown)
+                {
+                    win32_window_toggle_fullscreen(message.hwnd);
+                }
+            }
+
+            if (wasDown != isDown)
+            {
+                input->Keyboard.Pressed = isDown;
+                input->Keyboard.Released = !isDown;
+                input->Keyboard.KeyCode = vkCode;
+
+                if (vkCode == VK_ESCAPE)
+                {
+                    GlobalApplicationRunning = false;
+                }
+                else if (vkCode == 'L')
+                {
+                    if (isDown)
+                    {
+                        if (win32State->InputRecordingIndex == 0)
+                        {
+                            OutputDebugStringA("Begin recording input \n");
+                            win32_begin_recording_input(win32State, 1);
+                        }
+                        else
+                        {
+                            OutputDebugStringA("End recording input \n");
+                            win32_end_recording_input(win32State);
+                            win32_begin_play_back_input(win32State, 1);
+                        }
+                    }
+                }
+            }
+        } break;
+
+        default:
+        {
+            TranslateMessage(&message);
+            DispatchMessageA(&message);
+        } break;
         }
     }
 }

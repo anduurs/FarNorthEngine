@@ -8,6 +8,16 @@ if not defined DevEnvDir (
 REM -GR- turns off c++ runtime type info
 REM -EHa turns off c++ exception handling
 REM -Oi turn on compiler intrinsics
+REM -WX, -W4: enable warning level 4 and treat warnings as errors
+REM -wd: turn off some warnings
+REM -MT: static link C runtime library
+REM -Oi: generates intrinsic functions.
+REM -Od: disable optimization
+REM -GR-: disable run-time type information, we don't need this
+REM -Gm-: disable minimal rebuild
+REM -EHa-: disable exception-handling
+REM -nologo: don't print compiler info
+REM -FC: full Path of Source Code File in Diagnostics
 set CommonCompilerFlags=-nologo -MTd -fp:fast -FC -GR- -EHa- -Oi -WX -W4 -wd4100 -wd4189
 set CommonLinkerFlags=-incremental:no -opt:ref
 set PlatformLinkerLibs=user32.lib Gdi32.lib winmm.lib
@@ -31,7 +41,7 @@ popd
 REM 64-bit Release build
 REM if not exist .\build\release\x64 mkdir .\build\release\x64
 REM pushd .\build\release\x64
-REM cl %ReleaseCompilerDefinitions% %ReleaseCompilerFlags% %CommonCompilerFlags% -FeGame ..\..\..\src\game\fn_game.cpp %SharedLib% /link %CommonLinkerFlags%
+REM cl %ReleaseCompilerDefinitions% %ReleaseCompilerFlags% %CommonCompilerFlags% -FeGame ..\..\..\src\game\fn_game.cpp -LD /link %CommonLinkerFlags%
 REM cl %ReleaseCompilerDefinitions% %ReleaseCompilerFlags% %CommonCompilerFlags% -FeWin64Game ..\..\..\src\platform\win32\win32_main.cpp /link %CommonLinkerFlags% %PlatformLinkerLibs%
 REM popd
 

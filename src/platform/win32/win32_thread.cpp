@@ -105,9 +105,12 @@ internal win32_thread_info* win32_thread_create_workers(platform_job_queue* queu
 {
     SYSTEM_INFO systemInfo;
     GetSystemInfo(&systemInfo);
+
     uint32 availableThreads = systemInfo.dwNumberOfProcessors;
+
     if (availableThreads <= 0)
         availableThreads = 1;
+
     win32_thread_info* threads = (win32_thread_info*)malloc(availableThreads * sizeof(win32_thread_info));
 
     HANDLE semaphoreHandle = CreateSemaphoreEx(0, 0, availableThreads, 0, 0, SEMAPHORE_ALL_ACCESS);
