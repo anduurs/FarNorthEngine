@@ -6,7 +6,7 @@ struct game_offscreen_buffer
 {
     int32 Width;
     int32 Height;
-    int32 Pitch;
+    int32 Pitch; // Pitch = Width * bytesPerPixel (bytesPerPixel = 4)
     void* Data;
 };
 
@@ -31,9 +31,12 @@ struct game_memory
     void* TransientStorage;
 
     platform_api* PlatformAPI;
+
     platform_job_queue* HighPriorityQueue;
+    platform_job_queue* LowPriorityQueue;
 
     float DeltaTime;
+    float FixedDeltaTime;
 
     uint32 WindowWidth;
     uint32 WindowHeight;
@@ -114,25 +117,13 @@ struct game_input
 
 #define FN_GAME_API extern "C" __declspec(dllexport)
 
-#define FN_GAME_INIT(name) void name(game_memory* memory)
-typedef FN_GAME_INIT(game_init);
-FN_GAME_INIT(fn_game_init_stub) {}
-
-#define FN_GAME_PROCESS_INPUT(name) void name(game_memory* memory, game_input* input)
-typedef FN_GAME_PROCESS_INPUT(game_process_input);
-FN_GAME_PROCESS_INPUT(fn_game_process_input_stub) {}
-
 #define FN_GAME_TICK(name) void name(game_memory* memory)
 typedef FN_GAME_TICK(game_tick);
 FN_GAME_TICK(fn_game_tick_stub) {}
 
-#define FN_GAME_UPDATE(name) void name(game_memory* memory)
-typedef FN_GAME_UPDATE(game_update);
-FN_GAME_UPDATE(fn_game_update_stub) {}
-
-#define FN_GAME_RENDER(name) void name(game_memory* memory, game_offscreen_buffer* offScreenBuffer)
-typedef FN_GAME_RENDER(game_render);
-FN_GAME_RENDER(fn_game_render_stub) {}
+#define FN_GAME_RUN_FRAME(name) void name(game_memory* memory, game_input* input, game_offscreen_buffer* offScreenBuffer)
+typedef FN_GAME_RUN_FRAME(game_run_frame);
+FN_GAME_RUN_FRAME(fn_game_run_frame_stub) {}
 
 #define FN_GAME_OUTPUT_SOUND(name) void name(game_memory* memory, game_sound_output_buffer* soundBuffer)
 typedef FN_GAME_OUTPUT_SOUND(game_output_sound);
@@ -140,11 +131,8 @@ FN_GAME_OUTPUT_SOUND(fn_game_output_sound_stub) {}
 
 struct game_api
 {
-    game_init* Init;
-    game_process_input* ProcessInput;
     game_tick* Tick;
-    game_update* Update;
-    game_render* Render;
+    game_run_frame* RunFrame;
     game_output_sound* OutputSound;
 };
 

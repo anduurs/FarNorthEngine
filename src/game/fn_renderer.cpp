@@ -1,4 +1,14 @@
+struct fn_bitmap
+{
+    void* Data;
+    uint32 Width;
+    uint32 Height;
+};
 
+//internal void fn_renderer_draw_bitmap(game_offscreen_buffer* buffer, fn_bitmap* bitmap, int32 x, int32 y)
+//{
+//
+//}
 
 internal void fn_renderer_clear_screen(game_offscreen_buffer* buffer, uint8 red, uint8 green, uint8 blue)
 {

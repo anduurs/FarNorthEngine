@@ -3,13 +3,41 @@ struct memory_arena
     size_t Size;
     size_t Used;
     uint8* Base;
+    int32 TempCount;
 };
 
-internal inline void fn_memory_initialize(memory_arena* arena, size_t size, void* base)
+struct temporary_memory
+{
+    memory_arena* Arena;
+    size_t Used;
+};
+
+internal inline temporary_memory fn_memory_temporary_begin(memory_arena* arena)
+{
+    temporary_memory result = {};
+
+    result.Arena = arena;
+    result.Used = arena->Used;
+    result.Arena->TempCount++;
+
+    return result;
+}
+
+internal inline void fn_memory_temporary_end(temporary_memory tempMemory)
+{
+    memory_arena* arena = tempMemory.Arena;
+    assert(arena->Used >= tempMemory.Used);
+    arena->Used = tempMemory.Used;
+    assert(arena->TempCount > 0);
+    arena->TempCount--;
+}
+
+internal inline void fn_memory_initialize_arena(memory_arena* arena, size_t size, void* base)
 {
     arena->Size = size;
     arena->Base = (uint8*)base;
     arena->Used = 0;
+    arena->TempCount = 0;
 }
 
 #define fn_memory_reserve(arena, size, ...)fn_memory_reserve_(arena, size, ## __VA_ARGS__)
@@ -39,4 +67,12 @@ internal inline void* fn_memory_reserve_(memory_arena* arena, size_t size, size_
     arena->Used += size;
 
     return memory;
+}
+
+#define fn_memory_clear_struct(instance) fn_memory_clear(&instance, sizeof(instance))
+internal inline void fn_memory_clear(void* ptr, size_t size)
+{
+    uint8* byte = (uint8*)ptr;
+    while (size--)
+        *byte++ = 0;
 }

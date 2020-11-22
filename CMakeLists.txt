@@ -12,7 +12,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BuildDir})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BuildDir}) 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BuildDir}) 
 
-list(APPEND CommonCompilerFlags -nologo -Z7 -MTd -fp:fast -FC -GR- -EHa- -Oi -Od -WX -W4 -wd4100 -wd4189)
+list(APPEND CommonCompilerFlags -nologo -Zi -MTd -fp:fast -FC -GR- -EHa- -Oi -Od -WX -W4 -wd4201 -wd4100 -wd4505 -wd4189)
 list(APPEND CommonCompilerDefinitions -DDEBUG_BUILD=1 -DPLATFORM_WIN32=1)
 list(APPEND CommonLinkerFlags -incremental:no -opt:ref)
 list(APPEND CommonLinkerLibs user32.lib gdi32.lib winmm.lib)
@@ -30,10 +30,6 @@ add_custom_command(TARGET GameLib WORKING_DIRECTORY ${BuildDir}
 		COMMAND ${CMAKE_COMMAND} -E make_directory ${BuildDir}
 		COMMAND ${CMAKE_COMMAND} -E make_directory ${DataDir}
 		COMMAND del ARGS game_*.pdb 
-)
-add_custom_command(TARGET GameLib WORKING_DIRECTORY ${BuildDir}
-    POST_BUILD 
-        COMMAND ren ARGS game.pdb game_%random%.pdb 
 )
 
 add_executable(Game WIN32 ${SourceDir}platform/win32/win32_main.cpp)

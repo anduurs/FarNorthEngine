@@ -104,23 +104,17 @@ internal win32_game_code win32_load_game_code(const char* sourceDllPath, const c
 
     if (result.GameCodeDLL)
     {
-        gameApi.Init = (game_init*)GetProcAddress(result.GameCodeDLL, "fn_game_init");
-        gameApi.ProcessInput = (game_process_input*)GetProcAddress(result.GameCodeDLL, "fn_game_process_input");
-        gameApi.Tick = (game_tick*)GetProcAddress(result.GameCodeDLL, "fn_game_tick");
-        gameApi.Update = (game_tick*)GetProcAddress(result.GameCodeDLL, "fn_game_update");
-        gameApi.Render = (game_render*)GetProcAddress(result.GameCodeDLL, "fn_game_render");
-        gameApi.OutputSound = (game_output_sound*)GetProcAddress(result.GameCodeDLL, "fn_game_output_sound");
+        gameApi.Tick = (game_tick*)GetProcAddress(result.GameCodeDLL, "Tick");
+        gameApi.RunFrame = (game_run_frame*)GetProcAddress(result.GameCodeDLL, "RunFrame");
+        gameApi.OutputSound = (game_output_sound*)GetProcAddress(result.GameCodeDLL, "OutputSound");
 
-        result.IsValid = gameApi.Init && gameApi.ProcessInput && gameApi.Tick && gameApi.Update && gameApi.Render && gameApi.OutputSound;
+        result.IsValid = gameApi.Tick && gameApi.RunFrame && gameApi.OutputSound;
     }
 
     if (!result.IsValid)
     {
-        gameApi.Init = fn_game_init_stub;
-        gameApi.ProcessInput = fn_game_process_input_stub;
         gameApi.Tick = fn_game_tick_stub;
-        gameApi.Update = fn_game_update_stub;
-        gameApi.Render = fn_game_render_stub;
+        gameApi.RunFrame = fn_game_run_frame_stub;
         gameApi.OutputSound = fn_game_output_sound_stub;
     }
 
@@ -138,11 +132,8 @@ internal void win32_unload_game_code(win32_game_code* gameCode)
     }
 
     gameCode->IsValid = false;
-    gameCode->GameAPI.Init = fn_game_init_stub;
-    gameCode->GameAPI.ProcessInput = fn_game_process_input_stub;
     gameCode->GameAPI.Tick = fn_game_tick_stub;
-    gameCode->GameAPI.Update = fn_game_update_stub;
-    gameCode->GameAPI.Render = fn_game_render_stub;
+    gameCode->GameAPI.RunFrame = fn_game_run_frame_stub;
     gameCode->GameAPI.OutputSound = fn_game_output_sound_stub;
 }
 
@@ -236,35 +227,43 @@ int32 WINAPI WinMain
         {
             GlobalApplicationRunning = true;
 
-            platform_job_queue queue = {};
+            uint32 totalNumberOfThreads = win32_thread_get_number_of_cores();
 
-            win32_thread_info* workerThreads = win32_thread_create_workers(&queue);
+            uint32 lowPriorityQueueThreadCount = 2;
+            uint32 highPriorityQueueThreadCount = totalNumberOfThreads - lowPriorityQueueThreadCount;
 
-            win32_thread_schedule_job(&queue, job_callback, "Work A0");
-            win32_thread_schedule_job(&queue, job_callback, "Work A1");
-            win32_thread_schedule_job(&queue, job_callback, "Work A2");
-            win32_thread_schedule_job(&queue, job_callback, "Work A3");
-            win32_thread_schedule_job(&queue, job_callback, "Work A4");
-            win32_thread_schedule_job(&queue, job_callback, "Work A5");
-            win32_thread_schedule_job(&queue, job_callback, "Work A6");
-            win32_thread_schedule_job(&queue, job_callback, "Work A7");
-            win32_thread_schedule_job(&queue, job_callback, "Work A8");
-            win32_thread_schedule_job(&queue, job_callback, "Work A9");
+            platform_job_queue highPriorityQueue = {};
+            win32_thread_create_job_queue(&highPriorityQueue, highPriorityQueueThreadCount);
+
+            platform_job_queue lowPriorityQueue = {};
+            win32_thread_create_job_queue(&highPriorityQueue, lowPriorityQueueThreadCount);
+#if 1
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A0");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A1");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A2");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A3");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A4");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A5");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A6");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A7");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A8");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A9");
 
             Sleep(1000);
 
-            win32_thread_schedule_job(&queue, job_callback, "Work B0");
-            win32_thread_schedule_job(&queue, job_callback, "Work B1");
-            win32_thread_schedule_job(&queue, job_callback, "Work B2");
-            win32_thread_schedule_job(&queue, job_callback, "Work B3");
-            win32_thread_schedule_job(&queue, job_callback, "Work B4");
-            win32_thread_schedule_job(&queue, job_callback, "Work B5");
-            win32_thread_schedule_job(&queue, job_callback, "Work B6");
-            win32_thread_schedule_job(&queue, job_callback, "Work B7");
-            win32_thread_schedule_job(&queue, job_callback, "Work B8");
-            win32_thread_schedule_job(&queue, job_callback, "Work B9");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B0");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B1");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B2");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B3");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B4");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B5");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B6");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B7");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B8");
+            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B9");
 
-            win32_thread_complete_all_jobs(&queue);
+            win32_thread_complete_all_jobs(&highPriorityQueue);
+#endif
 
             platform_api platformAPI = {};
             gameMemory.PlatformAPI = &platformAPI;
@@ -276,7 +275,9 @@ int32 WINAPI WinMain
             gameMemory.PlatformAPI->ScheduleJob = win32_thread_schedule_job;
             gameMemory.PlatformAPI->CompleteAllJobs = win32_thread_complete_all_jobs;
 
-            gameMemory.HighPriorityQueue = &queue;
+            gameMemory.HighPriorityQueue = &highPriorityQueue;
+            gameMemory.LowPriorityQueue = &lowPriorityQueue;
+
             gameMemory.WindowWidth = windowWidth;
             gameMemory.WindowHeight = windowHeight;
 
@@ -300,14 +301,17 @@ int32 WINAPI WinMain
             char gameTempDLLPath[MAX_PATH];
             win32_build_path_in_exe_dir(&win32State, gameTempDLLName, sizeof(gameTempDLLName) - 1, gameTempDLLPath, sizeof(gameTempDLLPath));
 
+            char pdbLockName[] = "pdb.lock";
+            char pdbLockPath[MAX_PATH];
+            win32_build_path_in_exe_dir(&win32State, pdbLockName, sizeof(pdbLockName) - 1, pdbLockPath, sizeof(pdbLockPath));
+
             FILETIME DLLWriteTime = win32_get_last_write_time(gameDLLPath);
             win32_game_code game = win32_load_game_code(gameDLLPath, gameTempDLLPath);
             game_api gameAPI = game.GameAPI;
-            gameAPI.Init(&gameMemory);
 
-            uint64 lastTickCounter = win32_time_get_perf_counter();
-            uint64 lastFrameCounter = win32_time_get_perf_counter();
-            uint64 flipCounter = win32_time_get_perf_counter();
+            uint64 lastTickCounter = win32_time_get_counter();
+            uint64 lastFrameCounter = win32_time_get_counter();
+            uint64 flipCounter = win32_time_get_counter();
             uint64 lastCycleCounter = __rdtsc();
 
             int monitorRefreshRate = 60;
@@ -325,15 +329,20 @@ int32 WINAPI WinMain
             float targetSecondsPerTick = 1.0f / targetTickRate;
             float accumulator = 0.0f;
 
+            gameMemory.FixedDeltaTime = targetSecondsPerTick;
+
             while (GlobalApplicationRunning)
             {
-                gameMemory.DeltaTime = targetSecondsPerFrame;
                 FILETIME newDLLWriteTime = win32_get_last_write_time(gameDLLPath);
 
                 if (CompareFileTime(&newDLLWriteTime, &game.LastDLLWriteTime) != 0)
                 {
-                    win32_unload_game_code(&game);
-                    game = win32_load_game_code(gameDLLPath, gameTempDLLPath);
+                    DWORD attributes = GetFileAttributes(pdbLockPath);
+                    if (attributes == INVALID_FILE_ATTRIBUTES)
+                    {
+                        win32_unload_game_code(&game);
+                        game = win32_load_game_code(gameDLLPath, gameTempDLLPath);
+                    }
                 }
 
                 win32_input_process_messages(window, &win32State, newInput);
@@ -349,16 +358,7 @@ int32 WINAPI WinMain
                     win32_play_back_input(&win32State, newInput);
                 }
 
-                gameAPI.ProcessInput(&gameMemory, newInput);
-
-                if (!win32State.InputPlayingIndex)
-                {
-                    newInput->Keyboard.KeyCode = 0;
-                    newInput->Keyboard.Pressed = false;
-                    newInput->Keyboard.Released = false;
-                }
-
-                uint64 newTickCounter = win32_time_get_perf_counter();
+                uint64 newTickCounter = win32_time_get_counter();
                 float passedTime = win32_time_get_seconds_elapsed(lastTickCounter, newTickCounter);
                 lastTickCounter = newTickCounter;
 
@@ -368,6 +368,22 @@ int32 WINAPI WinMain
                 {
                     gameAPI.Tick(&gameMemory);
                     accumulator -= targetSecondsPerTick;
+                }
+
+                game_offscreen_buffer offScreenBuffer = {};
+
+                offScreenBuffer.Width = GlobalBackBuffer.Width;
+                offScreenBuffer.Height = GlobalBackBuffer.Height;
+                offScreenBuffer.Pitch = GlobalBackBuffer.Pitch;
+                offScreenBuffer.Data = GlobalBackBuffer.Data;
+
+                gameAPI.RunFrame(&gameMemory, newInput, &offScreenBuffer);
+
+                if (!win32State.InputPlayingIndex)
+                {
+                    newInput->Keyboard.KeyCode = 0;
+                    newInput->Keyboard.Pressed = false;
+                    newInput->Keyboard.Released = false;
                 }
 
                 DWORD playCursor;
@@ -394,17 +410,6 @@ int32 WINAPI WinMain
                     soundIsValid = true;
                 }
 
-                gameAPI.Update(&gameMemory);
-
-                game_offscreen_buffer offScreenBuffer = {};
-
-                offScreenBuffer.Width = GlobalBackBuffer.Width;
-                offScreenBuffer.Height = GlobalBackBuffer.Height;
-                offScreenBuffer.Pitch = GlobalBackBuffer.Pitch;
-                offScreenBuffer.Data = GlobalBackBuffer.Data;
-
-                gameAPI.Render(&gameMemory, &offScreenBuffer);
-
                 game_sound_output_buffer soundBuffer = {};
                 soundBuffer.SamplesPerSecond = soundOutput.SamplesPerSecond;
                 soundBuffer.SampleCount = bytesToWrite / soundOutput.BytesPerSample;
@@ -417,7 +422,10 @@ int32 WINAPI WinMain
                     win32_audio_fill_sound_buffer(&soundOutput, byteToLock, bytesToWrite, &soundBuffer);
                 }
 
-                float secondsElapsedForFrame = win32_time_get_seconds_elapsed(lastFrameCounter, win32_time_get_perf_counter());
+                float secondsElapsedForFrame = win32_time_get_seconds_elapsed(lastFrameCounter, win32_time_get_counter());
+
+                gameMemory.DeltaTime = secondsElapsedForFrame;
+                gameMemory.FixedDeltaTime = targetSecondsPerTick;
 
                 if (secondsElapsedForFrame < targetSecondsPerFrame)
                 {
@@ -432,11 +440,11 @@ int32 WINAPI WinMain
                             }
                         }
 
-                        secondsElapsedForFrame = win32_time_get_seconds_elapsed(lastFrameCounter, win32_time_get_perf_counter());
+                        secondsElapsedForFrame = win32_time_get_seconds_elapsed(lastFrameCounter, win32_time_get_counter());
                     }
                 }
 
-                uint64 endCounter = win32_time_get_perf_counter();
+                uint64 endCounter = win32_time_get_counter();
 
                 win32_window_dimension dimension = win32_window_get_dimension(window);
 
@@ -450,7 +458,7 @@ int32 WINAPI WinMain
                     dimension.Height
                 );
 
-                flipCounter = win32_time_get_perf_counter();
+                flipCounter = win32_time_get_counter();
 
                 game_input* tmp = oldInput;
                 oldInput = newInput;

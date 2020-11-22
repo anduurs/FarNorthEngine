@@ -1,4 +1,4 @@
-inline uint64 win32_time_get_perf_counter()
+inline uint64 win32_time_get_counter()
 {
     LARGE_INTEGER result;
     QueryPerformanceCounter(&result);

@@ -1,5 +1,8 @@
 #include "fn_game.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "../../dependencies/stb_image/stb_image.h"
+
 enum fn_input_action_type
 {
     MOVE_FORWARD,
@@ -8,18 +11,33 @@ enum fn_input_action_type
     MOVE_LEFT
 };
 
-
-FN_GAME_API FN_GAME_INIT(fn_game_init)
+internal void fn_assets_load(game_assets* assets)
 {
-    assert(sizeof(game_state) <= memory->PersistentStorageSize);
+    fn_bitmap playerBitmap = {};
+    int32 width;
+    int32 height;
+    int32 comp;
+    const char* filePath = "C:/dev/FarNorthEngine/data/images";
+    uint8* imageData = stbi_load(filePath, &width, &height, &comp, STBI_rgb);
 
-    game_state* gameState = (game_state*)memory->PersistentStorage;
 
-    fn_memory_initialize(
-        &gameState->WorldArena, 
-        memory->PersistentStorageSize - sizeof(game_state), 
+}
+
+internal void fn_game_initialize(game_memory* memory, game_state* gameState)
+{
+    fn_memory_initialize_arena(
+        &gameState->WorldArena,
+        memory->PersistentStorageSize - sizeof(game_state),
         (uint8*)memory->PersistentStorage + sizeof(game_state)
     );
+
+    //int32 width;
+    //int32 height;
+    //int32 comp;
+    //const char* filePath = "C:/dev/FarNorthEngine/data/images/playerspritesheet.png";
+    //uint8* imageData = stbi_load(filePath, &width, &height, &comp, STBI_rgb);
+
+    //stbi_image_free(imageData);
 
     gameState->GameWorld = fn_memory_reserve_struct(&gameState->WorldArena, fn_world);
     fn_world* gameWorld = gameState->GameWorld;
@@ -33,16 +51,10 @@ FN_GAME_API FN_GAME_INIT(fn_game_init)
     player->SpeedFactor = 70.0f;
     player->Position.x = 50.0f;
     player->Position.y = 50.0f;
-
-    memory->IsInitialized = true;
 }
 
-FN_GAME_API FN_GAME_PROCESS_INPUT(fn_game_process_input)
+internal void fn_game_process_input(game_memory* memory, game_state* gameState, game_input* input)
 {
-    assert(sizeof(game_state) <= memory->PersistentStorageSize);
-
-    game_state* gameState = (game_state*)memory->PersistentStorage;
-
     fn_world* gameWorld = gameState->GameWorld;
     fn_player* player = gameWorld->Player;
 
@@ -111,21 +123,13 @@ FN_GAME_API FN_GAME_PROCESS_INPUT(fn_game_process_input)
     }
 }
 
-FN_GAME_API FN_GAME_TICK(fn_game_tick)
+internal void fn_game_tick(game_memory* memory, game_state* gameState)
 {
-    assert(sizeof(game_state) <= memory->PersistentStorageSize);
-
-    game_state* gameState = (game_state*)memory->PersistentStorage;
-
 
 }
 
-FN_GAME_API FN_GAME_UPDATE(fn_game_update)
+internal void fn_game_update(game_memory* memory, game_state* gameState)
 {
-    assert(sizeof(game_state) <= memory->PersistentStorageSize);
-
-    game_state* gameState = (game_state*)memory->PersistentStorage;
-
     fn_world* gameWorld = gameState->GameWorld;
     fn_player* player = gameWorld->Player;
 
@@ -135,12 +139,8 @@ FN_GAME_API FN_GAME_UPDATE(fn_game_update)
     player->Position.y += player->Velocity.y * dt * player->SpeedFactor;
 }
 
-FN_GAME_API FN_GAME_RENDER(fn_game_render)
+internal void fn_game_render(game_memory* memory, game_state* gameState, game_offscreen_buffer* offScreenBuffer)
 {
-    assert(sizeof(game_state) <= memory->PersistentStorageSize);
-
-    game_state* gameState = (game_state*)memory->PersistentStorage;
-
     fn_world* gameWorld = gameState->GameWorld;
     fn_player* player = gameWorld->Player;
 
@@ -148,12 +148,8 @@ FN_GAME_API FN_GAME_RENDER(fn_game_render)
     fn_renderer_draw_quad(offScreenBuffer, (int32)player->Position.x, (int32)player->Position.y, 80, 80, 0x00, 0xFF, 0xFF);
 }
 
-FN_GAME_API FN_GAME_OUTPUT_SOUND(fn_game_output_sound)
+internal void fn_game_output_sound(game_memory* memory, game_state* gameState, game_sound_output_buffer* soundBuffer)
 {
-    assert(sizeof(game_state) <= memory->PersistentStorageSize);
-
-    game_state* gameState = (game_state*)memory->PersistentStorage;
-
     int16 toneVolume = 1000;
     int32 toneHz = 256;
     int wavePeriod = soundBuffer->SamplesPerSecond / toneHz;
@@ -170,4 +166,50 @@ FN_GAME_API FN_GAME_OUTPUT_SOUND(fn_game_output_sound)
 
         gameState->tSine += 2.0f * PI * 1.0f / (float)wavePeriod;
     }
+}
+
+FN_GAME_API FN_GAME_RUN_FRAME(RunFrame)
+{
+    assert(sizeof(game_state) <= memory->PersistentStorageSize);
+
+    game_state* gameState = (game_state*)memory->PersistentStorage;
+
+    if (!memory->IsInitialized)
+    {
+        fn_game_initialize(memory, gameState);
+        memory->IsInitialized = true;
+    }
+
+    assert(sizeof(transient_state) <= memory->TransientStorageSize);
+
+    transient_state* transientState = (transient_state*)memory->TransientStorage;
+    
+    if (!transientState->IsInitialized)
+    {
+        fn_memory_initialize_arena(
+            &transientState->TransientArena,
+            memory->TransientStorageSize - sizeof(transient_state),
+            (uint8*)memory->TransientStorage + sizeof(transient_state)
+        );
+
+        transientState->IsInitialized = true;
+    }
+
+    fn_game_process_input(memory, gameState, input);
+    fn_game_update(memory, gameState);
+    fn_game_render(memory, gameState, offScreenBuffer);
+}
+
+FN_GAME_API FN_GAME_TICK(Tick)
+{
+    assert(sizeof(game_state) <= memory->PersistentStorageSize);
+    game_state* gameState = (game_state*)memory->PersistentStorage;
+    fn_game_tick(memory, gameState);
+}
+
+FN_GAME_API FN_GAME_OUTPUT_SOUND(OutputSound)
+{
+    assert(sizeof(game_state) <= memory->PersistentStorageSize);
+    game_state* gameState = (game_state*)memory->PersistentStorage;
+    fn_game_output_sound(memory, gameState, soundBuffer);
 }

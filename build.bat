@@ -18,11 +18,11 @@ REM -Gm-: disable minimal rebuild
 REM -EHa-: disable exception-handling
 REM -nologo: don't print compiler info
 REM -FC: full Path of Source Code File in Diagnostics
-set CommonCompilerFlags=-nologo -MTd -fp:fast -FC -GR- -EHa- -Oi -WX -W4 -wd4100 -wd4189
+set CommonCompilerFlags=-nologo -MTd -fp:fast -FC -GR- -EHa- -Oi -WX -W4 -wd4201 -wd4100 -wd4505 -wd4189
 set CommonLinkerFlags=-incremental:no -opt:ref
 set PlatformLinkerLibs=user32.lib Gdi32.lib winmm.lib
 
-set DebugCompilerFlags=-Od -Z7
+set DebugCompilerFlags=-Od -Zi
 set DebugCompilerDefinitions=-DDEBUG_BUILD=1 -DPLATFORM_WIN32=1 
 
 set ReleaseCompilerFlags=-Ox
@@ -32,8 +32,10 @@ REM 64-bit Debug build
 if not exist .\build\debug\x64 mkdir .\build\debug\x64
 pushd .\build\debug\x64
 del *.pdb > NUL 2> NUL
+echo Build Lock > lock.tmp
 REM compile the game specific code as a DLL
 cl %DebugCompilerDefinitions% %DebugCompilerFlags% %CommonCompilerFlags% -Fegame ..\..\..\src\game\fn_game.cpp -LD /link -PDB:game_%RANDOM%.pdb %CommonLinkerFlags%
+del lock.tmp
 REM compile the platform specific code as an EXE
 cl %DebugCompilerDefinitions% %DebugCompilerFlags% %CommonCompilerFlags% -FeWin64Game ..\..\..\src\platform\win32\win32_main.cpp /link %CommonLinkerFlags% %PlatformLinkerLibs%
 popd
