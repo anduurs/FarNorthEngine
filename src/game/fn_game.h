@@ -37,6 +37,7 @@ struct game_state
 struct transient_state
 {
     bool IsInitialized;
+
     memory_arena TransientArena;
 
     platform_job_queue* HighPriorityQueue;

@@ -11,18 +11,6 @@ enum fn_input_action_type
     MOVE_LEFT
 };
 
-internal void fn_assets_load(game_assets* assets)
-{
-    fn_bitmap playerBitmap = {};
-    int32 width;
-    int32 height;
-    int32 comp;
-    const char* filePath = "C:/dev/FarNorthEngine/data/images";
-    uint8* imageData = stbi_load(filePath, &width, &height, &comp, STBI_rgb);
-
-
-}
-
 internal void fn_game_initialize(game_memory* memory, game_state* gameState)
 {
     fn_memory_initialize_arena(
@@ -30,14 +18,6 @@ internal void fn_game_initialize(game_memory* memory, game_state* gameState)
         memory->PersistentStorageSize - sizeof(game_state),
         (uint8*)memory->PersistentStorage + sizeof(game_state)
     );
-
-    //int32 width;
-    //int32 height;
-    //int32 comp;
-    //const char* filePath = "C:/dev/FarNorthEngine/data/images/playerspritesheet.png";
-    //uint8* imageData = stbi_load(filePath, &width, &height, &comp, STBI_rgb);
-
-    //stbi_image_free(imageData);
 
     gameState->GameWorld = fn_memory_reserve_struct(&gameState->WorldArena, fn_world);
     fn_world* gameWorld = gameState->GameWorld;
@@ -145,7 +125,12 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
     fn_player* player = gameWorld->Player;
 
     fn_renderer_clear_screen(offScreenBuffer, 0x00, 0x00, 0x00);
-    fn_renderer_draw_quad(offScreenBuffer, (int32)player->Position.x, (int32)player->Position.y, 80, 80, 0x00, 0xFF, 0xFF);
+    //fn_renderer_draw_quad(offScreenBuffer, (int32)player->Position.x, (int32)player->Position.y, 80, 80, 0x00, 0xFF, 0xFF);
+
+    transient_state* transientState = (transient_state*)memory->TransientStorage;
+    fn_bitmap* bitmap = fn_get_bitmap(&transientState->GameAssets, GAI_Player);
+
+    fn_renderer_draw_bitmap(offScreenBuffer, bitmap, (int32)player->Position.x, (int32)player->Position.y);
 }
 
 internal void fn_game_output_sound(game_memory* memory, game_state* gameState, game_sound_output_buffer* soundBuffer)
@@ -168,7 +153,7 @@ internal void fn_game_output_sound(game_memory* memory, game_state* gameState, g
     }
 }
 
-FN_GAME_API FN_GAME_RUN_FRAME(RunFrame)
+fn_api FN_GAME_RUN_FRAME(RunFrame)
 {
     assert(sizeof(game_state) <= memory->PersistentStorageSize);
 
@@ -187,10 +172,40 @@ FN_GAME_API FN_GAME_RUN_FRAME(RunFrame)
     if (!transientState->IsInitialized)
     {
         fn_memory_initialize_arena(
-            &transientState->TransientArena,
+            &transientState->GameAssets.AssetsArena,
             memory->TransientStorageSize - sizeof(transient_state),
             (uint8*)memory->TransientStorage + sizeof(transient_state)
         );
+
+        fn_bitmap* playerBitmap = fn_memory_reserve_struct(&transientState->GameAssets.AssetsArena, fn_bitmap);
+
+        platform_file_result file = memory->PlatformAPI->ReadFile("C:/dev/FarNorthEngine/data/images/playerspritesheet.png");
+
+        int32 width;
+        int32 height;
+        int32 comp;
+
+        stbi_set_flip_vertically_on_load(1);
+        uint8* imageData = stbi_load_from_memory((uint8*)file.Data, (int)file.FileSize, &width, &height, &comp, 4);
+        memory->PlatformAPI->FreeFile(&file);
+
+        uint32* pixel = (uint32*)imageData;
+
+        for (int32 y = 0; y < height; y++) {
+            for (int32 x = 0; x < width; x++) {
+                uint8 r = (uint8)(*pixel & 0x0000ff);
+                uint8 g = (uint8)((*pixel & 0x00ff00) >> 8);
+                uint8 b = (uint8)((*pixel & 0xff0000) >> 16);
+                uint8 a = (uint8)((*pixel & 0xff000000) >> 24);
+                *pixel++ = b | (g << 8) | (r << 16) | (a << 24);
+            }
+        }
+
+        playerBitmap->Data = imageData;
+        playerBitmap->Width = width;
+        playerBitmap->Height = height;
+
+        transientState->GameAssets.Bitmaps[GAI_Player] = playerBitmap;
 
         transientState->IsInitialized = true;
     }
@@ -200,14 +215,14 @@ FN_GAME_API FN_GAME_RUN_FRAME(RunFrame)
     fn_game_render(memory, gameState, offScreenBuffer);
 }
 
-FN_GAME_API FN_GAME_TICK(Tick)
+fn_api FN_GAME_TICK(Tick)
 {
     assert(sizeof(game_state) <= memory->PersistentStorageSize);
     game_state* gameState = (game_state*)memory->PersistentStorage;
     fn_game_tick(memory, gameState);
 }
 
-FN_GAME_API FN_GAME_OUTPUT_SOUND(OutputSound)
+fn_api FN_GAME_OUTPUT_SOUND(OutputSound)
 {
     assert(sizeof(game_state) <= memory->PersistentStorageSize);
     game_state* gameState = (game_state*)memory->PersistentStorage;

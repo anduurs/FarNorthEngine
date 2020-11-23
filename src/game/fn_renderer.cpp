@@ -1,14 +1,37 @@
 struct fn_bitmap
 {
-    void* Data;
-    uint32 Width;
-    uint32 Height;
+    uint8* Data;
+    int32 Width;
+    int32 Height;
 };
 
-//internal void fn_renderer_draw_bitmap(game_offscreen_buffer* buffer, fn_bitmap* bitmap, int32 x, int32 y)
-//{
-//
-//}
+internal void fn_renderer_draw_bitmap(game_offscreen_buffer* buffer, fn_bitmap* bitmap, int32 xOffset, int32 yOffset)
+{
+    int32 width = bitmap->Width;
+    int32 height = bitmap->Height;
+
+    if (xOffset <= 0) xOffset = 1;
+    if (xOffset + width >= buffer->Width) xOffset = buffer->Width - width;
+    if (yOffset <= 0) yOffset = 0;
+    if (yOffset + height >= buffer->Height) yOffset = buffer->Height - height;
+
+    uint32* row = (uint32*)buffer->Data;
+
+    for (int32 y = yOffset; y < yOffset + height; y++)
+    {
+        for (int32 x = xOffset; x < xOffset + width; x++)
+        {
+            uint32* pixel = (row + x) + y * buffer->Width;
+            uint32* bitmapPixel = (uint32*)bitmap->Data;
+
+            uint8 r = (uint8)(*bitmapPixel & 0x0000ff);
+            uint8 g = (uint8)((*bitmapPixel & 0x00ff00) >> 8);
+            uint8 b = (uint8)((*bitmapPixel & 0xff0000) >> 16);
+            uint8 a = (uint8)((*bitmapPixel & 0xff000000) >> 24);
+            *pixel++ = b | (g << 8) | (r << 16);
+        }
+    }
+}
 
 internal void fn_renderer_clear_screen(game_offscreen_buffer* buffer, uint8 red, uint8 green, uint8 blue)
 {
