@@ -8,6 +8,13 @@
 #include "fn_world.cpp"
 #include "fn_renderer.cpp"
 
+struct task_with_memory
+{
+    bool BeingUsed;
+    memory_arena Arena;
+    temporary_memory MemoryFlush;
+};
+
 enum game_asset_id
 {
     GAI_Player,
@@ -16,11 +23,13 @@ enum game_asset_id
 
 struct game_assets
 {
-    memory_arena AssetsArena;
+    struct transient_state* TransientState;
+    memory_arena Arena;
     fn_bitmap* Bitmaps[GAI_Count];
+    platform_api* PlatformAPI;
 };
 
-inline fn_bitmap* fn_get_bitmap(game_assets* assets, game_asset_id id)
+inline fn_bitmap* fn_assets_bitmap_get(game_assets* assets, game_asset_id id)
 {
     fn_bitmap* bitmap = assets->Bitmaps[id];
     return bitmap;
@@ -40,8 +49,10 @@ struct transient_state
 
     memory_arena TransientArena;
 
+    task_with_memory Tasks[4];
+
     platform_job_queue* HighPriorityQueue;
     platform_job_queue* LowPriorityQueue;
 
-    game_assets GameAssets;
+    game_assets Assets;
 };

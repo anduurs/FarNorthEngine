@@ -154,20 +154,7 @@ internal void win32_get_exe_path(win32_state* state)
     state->ExeDirLength = (int)(onePastLastSlash - state->ExePath);
 }
 
-internal FN_PLATFORM_JOB_QUEUE_CALLBACK(job_callback)
-{
-    char buffer[256];
-    wsprintf(buffer, "Thread %u: %s\n", GetCurrentThreadId(), (char*)data);
-    OutputDebugString(buffer);
-}
-
-int32 WINAPI WinMain
-(
-    HINSTANCE hInstance, 
-    HINSTANCE hPrevInstance, 
-    LPSTR commandLine, 
-    int showCode
-)
+int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR commandLine, int showCode)
 {
     LARGE_INTEGER perfCountFrequencyResult;
     QueryPerformanceFrequency(&perfCountFrequencyResult);
@@ -236,34 +223,7 @@ int32 WINAPI WinMain
             win32_thread_create_job_queue(&highPriorityQueue, highPriorityQueueThreadCount);
 
             platform_job_queue lowPriorityQueue = {};
-            win32_thread_create_job_queue(&highPriorityQueue, lowPriorityQueueThreadCount);
-#if 1
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A0");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A1");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A2");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A3");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A4");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A5");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A6");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A7");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A8");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work A9");
-
-            Sleep(1000);
-
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B0");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B1");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B2");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B3");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B4");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B5");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B6");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B7");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B8");
-            win32_thread_schedule_job(&highPriorityQueue, job_callback, "Work B9");
-
-            win32_thread_complete_all_jobs(&highPriorityQueue);
-#endif
+            win32_thread_create_job_queue(&lowPriorityQueue, lowPriorityQueueThreadCount);
 
             platform_api platformAPI = {};
             gameMemory.PlatformAPI = &platformAPI;

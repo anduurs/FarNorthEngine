@@ -22,13 +22,17 @@ internal void win32_thread_schedule_job(platform_job_queue* queue, platform_job_
 {
     uint32 newNextJobToWrite = (queue->NextJobToWrite + 1) % array_length(queue->Jobs);
     assert(newNextJobToWrite != queue->NextJobToRead);
+
     platform_job* job = queue->Jobs + queue->NextJobToWrite;
     job->Callback = callback;
     job->Data = data;
+
     queue->JobCompletionGoal++;
+
     _WriteBarrier();
-    _mm_sfence();
+
     queue->NextJobToWrite = newNextJobToWrite;
+
     ReleaseSemaphore(queue->SemaphoreHandle, 1, 0);
 }
 
