@@ -22,19 +22,16 @@ set CommonCompilerFlags=-nologo -MTd -fp:fast -FC -GR- -EHa- -Oi -WX -W4 -wd4201
 set CommonLinkerFlags=-incremental:no -opt:ref
 set PlatformLinkerLibs=user32.lib Gdi32.lib winmm.lib
 
-set DebugCompilerFlags=-Od -Zi
-set DebugCompilerDefinitions=-DDEBUG_BUILD=1 -DPLATFORM_WIN32=1 
+set ReleaseCompilerFlags=-Ox
+set ReleaseCompilerDefinitions=-DDEBUG_BUILD=0 -DPLATFORM_WIN32=1 
 
-REM 64-bit Debug build
-if not exist .\build\debug\x64 mkdir .\build\debug\x64
-pushd .\build\debug\x64
-del *.pdb > NUL 2> NUL
-
-echo Build Lock > lock.tmp
-REM compile the game specific code as a DLL
-cl %DebugCompilerDefinitions% %DebugCompilerFlags% %CommonCompilerFlags% -Fegame ..\..\..\src\game\fn_game.cpp -LD /link -PDB:game_%RANDOM%.pdb %CommonLinkerFlags%
-del lock.tmp
-REM compile the platform specific code as an EXE
-cl %DebugCompilerDefinitions% %DebugCompilerFlags% %CommonCompilerFlags% -FeWin64Game ..\..\..\src\platform\win32\win32_main.cpp /link %CommonLinkerFlags% %PlatformLinkerLibs%
+REM 64-bit Release build
+if not exist .\build\release\x64 mkdir .\build\release\x64
+pushd .\build\release\x64
+cl %ReleaseCompilerDefinitions% %ReleaseCompilerFlags% %CommonCompilerFlags% -Fegame ..\..\..\src\game\fn_game.cpp -LD /link %CommonLinkerFlags%
+cl %ReleaseCompilerDefinitions% %ReleaseCompilerFlags% %CommonCompilerFlags% -FeWin64Game ..\..\..\src\platform\win32\win32_main.cpp /link %CommonLinkerFlags% %PlatformLinkerLibs%
+del *.obj
+del *.exp
+del *.lib 
 popd
 

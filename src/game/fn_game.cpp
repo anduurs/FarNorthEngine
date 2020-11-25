@@ -1,8 +1,5 @@
 #include "fn_game.h"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "../../dependencies/stb_image/stb_image.h"
-
 enum fn_input_action_type
 {
     MOVE_FORWARD,
@@ -19,39 +16,6 @@ struct fn_asset_bitmap_load_job
     task_with_memory* Task;
     fn_bitmap* Bitmap;
 };
-
-internal fn_bitmap fn_assets_bitmap_load(platform_api* platformAPI, char* fileName)
-{
-    fn_bitmap result = {};
-
-    platform_file_result file = platformAPI->ReadFile("C:/dev/FarNorthEngine/data/images/playerspritesheet.png");
-
-    int32 width;
-    int32 height;
-    int32 comp;
-
-    stbi_set_flip_vertically_on_load(1);
-    uint8* imageData = stbi_load_from_memory((uint8*)file.Data, (int)file.FileSize, &width, &height, &comp, 4);
-    platformAPI->FreeFile(&file);
-
-    uint32* pixel = (uint32*)imageData;
-
-    for (int32 y = 0; y < height; y++) {
-        for (int32 x = 0; x < width; x++) {
-            uint8 r = (uint8)(*pixel & 0x0000ff);
-            uint8 g = (uint8)((*pixel & 0x00ff00) >> 8);
-            uint8 b = (uint8)((*pixel & 0xff0000) >> 16);
-            uint8 a = (uint8)((*pixel & 0xff000000) >> 24);
-            *pixel++ = b | (g << 8) | (r << 16) | (a << 24);
-        }
-    }
-
-    result.Data = imageData;
-    result.Width = width;
-    result.Height = height;
-
-    return result;
-}
 
 internal task_with_memory* fn_begin_task_with_memory(transient_state* transientState)
 {
@@ -228,7 +192,7 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
     transient_state* transientState = (transient_state*)memory->TransientStorage;
     fn_bitmap* bitmap = fn_assets_bitmap_get(&transientState->Assets, GAI_Player);
     if (bitmap)
-        fn_renderer_draw_bitmap(offScreenBuffer, bitmap, (int32)player->Position.x, (int32)player->Position.y);
+        fn_renderer_draw_bitmap(offScreenBuffer, bitmap, (int32)player->Position.x + 200, (int32)player->Position.y);
 }
 
 internal void fn_game_output_sound(game_memory* memory, game_state* gameState, game_sound_output_buffer* soundBuffer)

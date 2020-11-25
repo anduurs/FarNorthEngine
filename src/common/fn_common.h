@@ -15,16 +15,20 @@
 #include <intrin.h>
 #endif
 
+// used for functions that should only be accesed within the same translation unit
 #define internal static
+// used for local variables in functions that should be treated as globals
 #define local_persist static
+// global variables
 #define global_variable static  
 
 #define array_length(a) (sizeof(a)/sizeof(a[0]))
 
-#define kilobytes(number) ((number)*1024ull)
+#define kilobytes(number) ((number) * 1024ull)
 #define megabytes(number) (kilobytes(number) * 1024ull)
 #define gigabytes(number) (megabytes(number) * 1024ull)
 #define terabytes(number) (gigabytes(number) * 1024ull)
+
 #define minimum(a, b) ((a) < (b) ? (a) : (b))
 #define maximum(a, b) ((a) > (b) ? (a) : (b))
 

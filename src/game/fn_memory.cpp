@@ -12,6 +12,13 @@ struct temporary_memory
     size_t Used;
 };
 
+struct task_with_memory
+{
+    bool BeingUsed;
+    memory_arena Arena;
+    temporary_memory MemoryFlush;
+};
+
 internal inline temporary_memory fn_memory_temporary_begin(memory_arena* arena)
 {
     temporary_memory result = {};

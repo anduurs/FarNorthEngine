@@ -1,80 +1,16 @@
 #include "win32_main.h"
 
 #include "win32_window.cpp"
+#include "win32_time.cpp"
+#include "win32_file.cpp"
 #include "win32_input_recording.cpp"
 #include "win32_input.cpp"
 #include "win32_audio.cpp"
 #include "win32_thread.cpp"
-#include "win32_time.cpp"
-
-FN_PLATFORM_FILE_WRITE(PlatformWriteFile)
-{
-    bool result = false;
-    HANDLE fileHandle = CreateFile(fileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
-
-    if (fileHandle != INVALID_HANDLE_VALUE)
-    {
-        DWORD bytesWritten;
-        if (WriteFile(fileHandle, data, size, &bytesWritten, 0))
-        {
-            result = bytesWritten == size;
-        }
-
-        CloseHandle(fileHandle);
-    }
-
-    return result;
-}
-
-FN_PLATFORM_FILE_FREE(PlatformFreeFile)
-{
-    if (data)
-    {
-        VirtualFree(data, 0, MEM_RELEASE);
-    }
-}
-
-FN_PLATFORM_FILE_READ(PlatformReadFile)
-{
-    platform_file_result result = {};
-
-    HANDLE fileHandle = CreateFile(fileName, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
-
-    if (fileHandle != INVALID_HANDLE_VALUE)
-    {
-        LARGE_INTEGER fileSize;
-        if (GetFileSizeEx(fileHandle, &fileSize))
-        {
-            assert(fileSize.QuadPart <= 0xFFFFFFFF);
-
-            uint32 size = (uint32)fileSize.QuadPart;
-
-            void* fileData = VirtualAlloc(0, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-
-            if (fileData)
-            {
-                DWORD bytesRead;
-                if (ReadFile(fileHandle, fileData, size, &bytesRead, 0) && size == (uint32)bytesRead)
-                {
-                    result.FileSize = size;
-                    result.Data = fileData;
-                }
-                else
-                {
-                    PlatformFreeFile(fileData);
-                    fileData = 0;
-                }
-            }
-        }
-
-        CloseHandle(fileHandle);
-    }
-
-    return result;
-}
 
 FN_PLATFORM_DEBUG_LOG(PlatformDebugLog)
 {
+    // @TODO(Anders E): Make a better way of debug logging
     OutputDebugStringA(message);
     OutputDebugStringA("\n");
 }
@@ -228,9 +164,9 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
             platform_api platformAPI = {};
             gameMemory.PlatformAPI = &platformAPI;
 
-            gameMemory.PlatformAPI->WriteFile = PlatformWriteFile;
-            gameMemory.PlatformAPI->FreeFile = PlatformFreeFile;
-            gameMemory.PlatformAPI->ReadFile = PlatformReadFile;
+            gameMemory.PlatformAPI->WriteFile = win32_file_write;
+            gameMemory.PlatformAPI->ReadFile = win32_file_read;
+            gameMemory.PlatformAPI->FreeFile = win32_file_free;
             gameMemory.PlatformAPI->DebugLog = PlatformDebugLog;
             gameMemory.PlatformAPI->ScheduleJob = win32_thread_schedule_job;
             gameMemory.PlatformAPI->CompleteAllJobs = win32_thread_complete_all_jobs;

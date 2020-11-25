@@ -1,9 +1,3 @@
-struct fn_bitmap
-{
-    uint8* Data;
-    int32 Width;
-    int32 Height;
-};
 
 internal void fn_renderer_draw_bitmap(game_offscreen_buffer* buffer, fn_bitmap* bitmap, int32 xOffset, int32 yOffset)
 {
@@ -15,20 +9,24 @@ internal void fn_renderer_draw_bitmap(game_offscreen_buffer* buffer, fn_bitmap* 
     if (yOffset <= 0) yOffset = 0;
     if (yOffset + height >= buffer->Height) yOffset = buffer->Height - height;
 
-    uint32* row = (uint32*)buffer->Data;
-
+    uint32* srcPixels = (uint32*)bitmap->Data;
+    uint32* dstPixels = (uint32*)buffer->Data;
+    
     for (int32 y = yOffset; y < yOffset + height; y++)
     {
         for (int32 x = xOffset; x < xOffset + width; x++)
         {
-            uint32* pixel = (row + x) + y * buffer->Width;
-            uint32* bitmapPixel = (uint32*)bitmap->Data;
+            uint32* pixel = (dstPixels + x) + y * buffer->Width;
 
-            uint8 r = (uint8)(*bitmapPixel & 0x0000ff);
-            uint8 g = (uint8)((*bitmapPixel & 0x00ff00) >> 8);
-            uint8 b = (uint8)((*bitmapPixel & 0xff0000) >> 16);
-            uint8 a = (uint8)((*bitmapPixel & 0xff000000) >> 24);
-            *pixel++ = b | (g << 8) | (r << 16);
+            uint32 srcColor = *srcPixels++;
+
+            // extract the rgba components of the bitmap source image
+            uint8 r = (uint8)(srcColor & 0x0000ff);
+            uint8 g = (uint8)((srcColor & 0x00ff00) >> 8);
+            uint8 b = (uint8)((srcColor & 0xff0000) >> 16);
+            uint8 a = (uint8)((srcColor & 0xff000000) >> 24);
+
+            *pixel++ = b | (g << 8) | (r << 16) | (a << 24);
         }
     }
 }
