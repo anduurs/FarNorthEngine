@@ -8,7 +8,7 @@
 #include "win32_audio.cpp"
 #include "win32_thread.cpp"
 
-FN_PLATFORM_DEBUG_LOG(PlatformDebugLog)
+internal void win32_debug_log(const char* message)
 {
     // @TODO(Anders E): Make a better way of debug logging
     OutputDebugStringA(message);
@@ -111,6 +111,10 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
         platform_rendering_context::SOFTWARE_RENDERING
     );
 
+#if !DEBUG_BUILD
+    win32_window_toggle_fullscreen(windowInfo.WindowHandle);
+#endif
+
     if (windowInfo.IsValid)
     {
         HDC deviceContext = windowInfo.DeviceContext;
@@ -150,10 +154,10 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
         {
             GlobalApplicationRunning = true;
 
-            uint32 totalNumberOfThreads = win32_thread_get_number_of_cores();
+            uint32 availableCPUCores = win32_thread_get_number_of_cores();
 
             uint32 lowPriorityQueueThreadCount = 2;
-            uint32 highPriorityQueueThreadCount = totalNumberOfThreads - lowPriorityQueueThreadCount;
+            uint32 highPriorityQueueThreadCount = availableCPUCores - lowPriorityQueueThreadCount;
 
             platform_job_queue highPriorityQueue = {};
             win32_thread_create_job_queue(&highPriorityQueue, highPriorityQueueThreadCount);
@@ -167,7 +171,7 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
             gameMemory.PlatformAPI->WriteFile = win32_file_write;
             gameMemory.PlatformAPI->ReadFile = win32_file_read;
             gameMemory.PlatformAPI->FreeFile = win32_file_free;
-            gameMemory.PlatformAPI->DebugLog = PlatformDebugLog;
+            gameMemory.PlatformAPI->DebugLog = win32_debug_log;
             gameMemory.PlatformAPI->ScheduleJob = win32_thread_schedule_job;
             gameMemory.PlatformAPI->CompleteAllJobs = win32_thread_complete_all_jobs;
 
