@@ -43,7 +43,7 @@ internal void fn_end_task_with_memory(task_with_memory* task)
     task->BeingUsed = false;
 }
 
-internal FN_PLATFORM_JOB_QUEUE_CALLBACK(LoadAssetJob)
+internal void fn_assets_bitmap_load_job_callback(platform_job_queue* queue, void* data)
 {
     fn_asset_bitmap_load_job* job = (fn_asset_bitmap_load_job*)data;
 
@@ -69,7 +69,7 @@ internal void fn_assets_bitmap_load_async(game_assets* assets, game_asset_id ass
         job->Assets = assets;
         job->Bitmap = fn_memory_alloc_struct(&assets->Arena, fn_bitmap);
 
-        assets->PlatformAPI->ScheduleJob(assets->TransientState->LowPriorityQueue, LoadAssetJob, job);
+        assets->PlatformAPI->ScheduleJob(assets->TransientState->LowPriorityQueue, fn_assets_bitmap_load_job_callback, job);
     }
 }
 

@@ -154,8 +154,6 @@ struct platform_file_result
     void* Data;
 };
 
-// @TODO(Anders): make async versions of read and write file. Look up I/O completion ports for windows platform layer
-
 #define FN_PLATFORM_FILE_FREE(name) void name(void* data)
 typedef FN_PLATFORM_FILE_FREE(platform_file_free);
 
