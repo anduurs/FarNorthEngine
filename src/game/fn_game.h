@@ -15,6 +15,8 @@ struct game_state
 
     memory_arena WorldArena;
     fn_world* GameWorld;
+
+    fn_entity_storage EntityStore;
 };
 
 struct transient_state

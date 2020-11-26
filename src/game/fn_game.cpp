@@ -81,6 +81,13 @@ internal void fn_game_initialize(game_memory* memory, game_state* gameState)
         (uint8*)memory->PersistentStorage + sizeof(game_state)
     );
 
+    fn_memory_initialize_sub_arena(&gameState->EntityStore.Arena, &gameState->WorldArena, megabytes(10));
+
+    gameState->EntityStore.Entities = (fn_entity*)fn_memory_alloc(&gameState->EntityStore.Arena, sizeof(fn_entity) * MAX_ENTITIES);
+    gameState->EntityStore.PositionComponents = (position2d_component*)fn_memory_alloc(&gameState->EntityStore.Arena, sizeof(position2d_component) * MAX_ENTITIES);
+    gameState->EntityStore.VelocityComponents = (velocity2d_component*)fn_memory_alloc(&gameState->EntityStore.Arena, sizeof(velocity2d_component) * MAX_ENTITIES);
+    gameState->EntityStore.SpeedComponents = (speed_component*)fn_memory_alloc(&gameState->EntityStore.Arena, sizeof(speed_component) * MAX_ENTITIES);
+
     gameState->GameWorld = fn_memory_alloc_struct(&gameState->WorldArena, fn_world);
     fn_world* gameWorld = gameState->GameWorld;
 
@@ -172,6 +179,15 @@ internal void fn_game_tick(game_memory* memory, game_state* gameState)
 
 internal void fn_game_update(game_memory* memory, game_state* gameState)
 {
+    fn_entity_storage entityStore = gameState->EntityStore;
+
+    for (int i = 0; i < MAX_ENTITIES; i++)
+    {
+        uint32 index = fn_entity_index(entityStore.Entities[i].EntityId);
+        vec2* positionData = &entityStore.PositionComponents[index].Position;
+    }
+
+
     fn_world* gameWorld = gameState->GameWorld;
     fn_player* player = gameWorld->Player;
 
