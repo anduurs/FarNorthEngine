@@ -97,18 +97,40 @@ internal void fn_game_initialize(game_memory* memory, game_state* gameState)
     gameWorld->Player = fn_memory_alloc_struct(&gameState->WorldArena, fn_player);
     fn_player* player = gameWorld->Player;
 
-    f32 vertices[] = 
+    f32 vertices[] =
     {
-         // Front
+        // front
         -1.0, -1.0,  1.0,
          1.0, -1.0,  1.0,
          1.0,  1.0,  1.0,
         -1.0,  1.0,  1.0,
-        // Back
+        // back
         -1.0, -1.0, -1.0,
          1.0, -1.0, -1.0,
          1.0,  1.0, -1.0,
         -1.0,  1.0, -1.0
+    };
+
+    uint16 indices[] =
+    {
+        // front
+        0, 1, 2,
+        2, 3, 0,
+        // right
+        1, 5, 6,
+        6, 2, 1,
+        // back
+        7, 6, 5,
+        5, 4, 7,
+        // left
+        4, 0, 3,
+        3, 7, 4,
+        // bottom
+        4, 5, 1,
+        1, 0, 4,
+        // top
+        3, 2, 6,
+        6, 7, 3
     };
 
     player->SpeedFactor = 70.0f;
