@@ -1,8 +1,8 @@
 struct fn_player
 {
     float SpeedFactor;
-    vec2 Position;
-    vec2 Velocity;
+    vec2f Position;
+    vec2f Velocity;
 };
 
 struct fn_world_chunk

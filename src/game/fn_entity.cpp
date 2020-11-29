@@ -13,12 +13,12 @@ struct fn_entity
 
 struct position2d_component
 {
-    vec2 Position;
+    vec2f Position;
 };
 
 struct velocity2d_component
 {
-    vec2 Velocity;
+    vec2f Velocity;
 };
 
 struct radius_component

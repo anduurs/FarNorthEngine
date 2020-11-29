@@ -6,10 +6,14 @@
 #define TO_RADIANS(angle)(angle * (PI / 180.0f))
 #define TO_DEGREES(radians)(radians * (180.0f / PI))
 
-// VECTOR SECTION
-struct vec2
+struct vec2f
 {
 	float x, y;
+};
+
+struct vec2i
+{
+	int32 x, y;
 };
 
 struct vec3
@@ -21,6 +25,57 @@ struct vec4
 {
 	float x, y, z, w;
 };
+
+struct AABB
+{
+	int32 Xmin;
+	int32 Xmax;
+	int32 Ymin;
+	int32 Ymax;
+};
+
+// assumes vertices are sorted in y-axis from lower to upper, v1 = min , v3 = max
+internal AABB fn_math_get_bounding_box_for_triangle(vec2i v1, vec2i v2, vec2i v3)
+{
+	AABB result = {};
+
+	result.Ymin = v1.y;
+	result.Ymax = v3.y;
+
+	if (v1.x <= v2.x) result.Xmin = v1.x;
+	else result.Xmin = v2.x;
+
+	if (v3.x < result.Xmin) result.Xmin = v3.x;
+
+	if (v1.x >= v2.x) result.Xmax = v1.x;
+	else result.Xmax = v2.x;
+
+	if (v3.x > result.Xmax) result.Xmax = v3.x;
+
+	return result;
+}
+
+internal inline float fn_math_sign(vec2i p1, vec2i p2, vec2i p3)
+{
+	return (float)((p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y));
+}
+
+internal bool fn_math_point_in_triangle(vec2i pt, vec2i v1, vec2i v2, vec2i v3)
+{
+	float d1 = fn_math_sign(pt, v1, v2);
+	float d2 = fn_math_sign(pt, v2, v3);
+	float d3 = fn_math_sign(pt, v3, v1);
+
+	bool has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+	bool has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
+	return !(has_neg && has_pos);
+}
+
+internal inline float fn_math_lerpf(float a, float b, float t)
+{
+	return (a * (1.0f - t)) + (b * t);
+}
 
 internal inline float fn_math_vec3_length(const vec3* v)
 {

@@ -67,3 +67,11 @@ typedef uint64_t uint64;
 * then converted back to pointer to void, 
 * and the result will compare equal to the original pointer */
 typedef uintptr_t uint64ptr;
+
+template<class T>
+internal inline void fn_swap(T* a, T* b)
+{
+    T tmp = *a;
+    *a = *b;
+    *b = tmp;
+}

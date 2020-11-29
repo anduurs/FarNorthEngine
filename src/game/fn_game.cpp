@@ -81,12 +81,12 @@ internal void fn_game_initialize(game_memory* memory, game_state* gameState)
         (uint8*)memory->PersistentStorage + sizeof(game_state)
     );
 
-    fn_memory_initialize_sub_arena(&gameState->EntityStore.Arena, &gameState->WorldArena, megabytes(10));
+    /*fn_memory_initialize_sub_arena(&gameState->EntityStore.Arena, &gameState->WorldArena, megabytes(10));
 
     gameState->EntityStore.Entities = (fn_entity*)fn_memory_alloc(&gameState->EntityStore.Arena, sizeof(fn_entity) * MAX_ENTITIES);
     gameState->EntityStore.PositionComponents = (position2d_component*)fn_memory_alloc(&gameState->EntityStore.Arena, sizeof(position2d_component) * MAX_ENTITIES);
     gameState->EntityStore.VelocityComponents = (velocity2d_component*)fn_memory_alloc(&gameState->EntityStore.Arena, sizeof(velocity2d_component) * MAX_ENTITIES);
-    gameState->EntityStore.SpeedComponents = (speed_component*)fn_memory_alloc(&gameState->EntityStore.Arena, sizeof(speed_component) * MAX_ENTITIES);
+    gameState->EntityStore.SpeedComponents = (speed_component*)fn_memory_alloc(&gameState->EntityStore.Arena, sizeof(speed_component) * MAX_ENTITIES);*/
 
     gameState->GameWorld = fn_memory_alloc_struct(&gameState->WorldArena, fn_world);
     fn_world* gameWorld = gameState->GameWorld;
@@ -179,13 +179,13 @@ internal void fn_game_tick(game_memory* memory, game_state* gameState)
 
 internal void fn_game_update(game_memory* memory, game_state* gameState)
 {
-    fn_entity_storage entityStore = gameState->EntityStore;
+    //fn_entity_storage entityStore = gameState->EntityStore;
 
-    for (int i = 0; i < MAX_ENTITIES; i++)
-    {
-        uint32 index = fn_entity_index(entityStore.Entities[i].EntityId);
-        vec2* positionData = &entityStore.PositionComponents[index].Position;
-    }
+    //for (int i = 0; i < MAX_ENTITIES; i++)
+    //{
+    //    uint32 index = fn_entity_index(entityStore.Entities[i].EntityId);
+    //    vec2f* positionData = &entityStore.PositionComponents[index].Position;
+    //}
 
 
     fn_world* gameWorld = gameState->GameWorld;
@@ -203,17 +203,23 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
     fn_player* player = gameWorld->Player;
 
     fn_renderer_clear_screen(offScreenBuffer, 0x00, 0x00, 0x00);
-    fn_renderer_draw_quad(offScreenBuffer, 500, 400, 80, 80, 0x00, 0xFF, 0xFF);
+    //fn_renderer_draw_quad(offScreenBuffer, 500, 400, 80, 80, 0x00, 0xFF, 0xFF);
 
-    transient_state* transientState = (transient_state*)memory->TransientStorage;
+    fn_renderer_draw_triangle(offScreenBuffer, vec2i{ 500, 500 }, vec2i{ 700, 200 }, vec2i{ 900, 500 }, 0x00, 0xFF, 0x00);
+
+    //fn_renderer_draw_line_dda(offScreenBuffer, vec2i{ 500, 500 }, vec2i{ 700, 200 }, 0xFF, 0x00, 0x00);
+    //fn_renderer_draw_line_dda(offScreenBuffer, vec2i{ 900, 500 }, vec2i{ 700, 200 }, 0x00, 0x00, 0xFF);
+    //fn_renderer_draw_line_dda(offScreenBuffer, vec2i{ 500, 500 }, vec2i{ 900, 500 }, 0x00, 0xFF, 0x00);
+
+   /* transient_state* transientState = (transient_state*)memory->TransientStorage;
     fn_bitmap* bitmap = fn_assets_bitmap_get(&transientState->Assets, GAI_Player);
     if (bitmap)
-        fn_renderer_draw_bitmap(offScreenBuffer, bitmap, (int32)player->Position.x + 200, (int32)player->Position.y);
+        fn_renderer_draw_bitmap(offScreenBuffer, bitmap, (int32)player->Position.x + 200, (int32)player->Position.y);*/
 }
 
 internal void fn_game_output_sound(game_memory* memory, game_state* gameState, game_sound_output_buffer* soundBuffer)
 {
-    int16 toneVolume = 1000;
+    int16 toneVolume = 0;
     int32 toneHz = 256;
     int wavePeriod = soundBuffer->SamplesPerSecond / toneHz;
 
