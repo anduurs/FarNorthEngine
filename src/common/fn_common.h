@@ -20,7 +20,7 @@
 // used for local variables in functions that should be treated as globals
 #define local_persist static
 // global variables
-#define global_variable static  
+#define global static  
 
 #define array_length(a) (sizeof(a)/sizeof(a[0]))
 
@@ -29,8 +29,8 @@
 #define gigabytes(number) (megabytes(number) * 1024ull)
 #define terabytes(number) (gigabytes(number) * 1024ull)
 
-#define minimum(a, b) ((a) < (b) ? (a) : (b))
-#define maximum(a, b) ((a) > (b) ? (a) : (b))
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#define max(a, b) ((a) > (b) ? (a) : (b))
 
 #if DEBUG_BUILD
 #define assert(Expression) if (!(Expression)) {*(int*)0 = 0;}
@@ -61,6 +61,9 @@ typedef int64_t int64;
 
 /* unsigned long long, 8 bytes, 0 to 18,446,744,073,709,551,615 */
 typedef uint64_t uint64;
+
+typedef float f32;
+typedef double f64;
 
 /* unsigned long long, 8bytes */
 /* Any valid pointer to void can be converted to this type 

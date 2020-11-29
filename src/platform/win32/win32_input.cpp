@@ -6,7 +6,7 @@ XINPUT_GET_STATE(XInputGetStateStub)
 {
     return ERROR_DEVICE_NOT_CONNECTED;
 }
-global_variable xinput_get_state* XInputGetState_ = XInputGetStateStub;
+global xinput_get_state* XInputGetState_ = XInputGetStateStub;
 #define XInputGetState XInputGetState_
 
 #define XINPUT_SET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_VIBRATION* pVibration)
@@ -15,7 +15,7 @@ XINPUT_SET_STATE(XInputSetStateStub)
 {
     return ERROR_DEVICE_NOT_CONNECTED;
 }
-global_variable xinput_set_state* XInputSetState_ = XInputSetStateStub;
+global xinput_set_state* XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
 
 internal void win32_input_load_xinput()
@@ -159,8 +159,8 @@ internal void win32_input_process_messages(HWND window, win32_state* win32State,
             GetCursorPos(&mousePosition);
             ScreenToClient(window, &mousePosition);
 
-            input->Mouse.MouseCursorX = (float)mousePosition.x;
-            input->Mouse.MouseCursorY = (float)mousePosition.y;
+            input->Mouse.MouseCursorX = (f32)mousePosition.x;
+            input->Mouse.MouseCursorY = (f32)mousePosition.y;
             //char printBuffer[256];
             //sprintf_s(printBuffer, "%f %f \n", (float)mousePosition.x, (float)mousePosition.y);
             //OutputDebugStringA(printBuffer);

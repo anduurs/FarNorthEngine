@@ -3,12 +3,12 @@
 #include <math.h>
 
 #define PI 3.14159265359f
-#define TO_RADIANS(angle)(angle * (PI / 180.0f))
-#define TO_DEGREES(radians)(radians * (180.0f / PI))
+#define to_radians(angle)(angle * (PI / 180.0f))
+#define to_degrees(radians)(radians * (180.0f / PI))
 
 struct vec2f
 {
-	float x, y;
+	f32 x, y;
 };
 
 struct vec2i
@@ -16,14 +16,14 @@ struct vec2i
 	int32 x, y;
 };
 
-struct vec3
+struct vec3f
 {
-	float x, y, z;
+	f32 x, y, z;
 };
 
 struct vec4
 {
-	float x, y, z, w;
+	f32 x, y, z, w;
 };
 
 struct AABB
@@ -34,10 +34,17 @@ struct AABB
 	int32 Ymax;
 };
 
-// assumes vertices are sorted in y-axis from lower to upper, v1 = min , v3 = max
-internal AABB fn_math_get_bounding_box_for_triangle(vec2i v1, vec2i v2, vec2i v3)
+// if sorted is true then the function assumes vertices are sorted in y-axis from lower to upper, v1 = min , v3 = max
+internal AABB fn_math_get_bounding_box_for_triangle(vec2i v1, vec2i v2, vec2i v3, bool lowerToUpperSorted = false)
 {
 	AABB result = {};
+
+	if (!lowerToUpperSorted)
+	{
+		if (v1.y > v2.y) fn_swap(&v1, &v2);
+		if (v1.y > v3.y) fn_swap(&v1, &v3);
+		if (v2.y > v3.y) fn_swap(&v2, &v3);
+	}
 
 	result.Ymin = v1.y;
 	result.Ymax = v3.y;
@@ -55,16 +62,16 @@ internal AABB fn_math_get_bounding_box_for_triangle(vec2i v1, vec2i v2, vec2i v3
 	return result;
 }
 
-internal inline float fn_math_sign(vec2i p1, vec2i p2, vec2i p3)
+internal inline int32 fn_math_sign(vec2i p1, vec2i p2, vec2i p3)
 {
-	return (float)((p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y));
+	return ((p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y));
 }
 
 internal bool fn_math_point_in_triangle(vec2i pt, vec2i v1, vec2i v2, vec2i v3)
 {
-	float d1 = fn_math_sign(pt, v1, v2);
-	float d2 = fn_math_sign(pt, v2, v3);
-	float d3 = fn_math_sign(pt, v3, v1);
+	int32 d1 = fn_math_sign(pt, v1, v2);
+	int32 d2 = fn_math_sign(pt, v2, v3);
+	int32 d3 = fn_math_sign(pt, v3, v1);
 
 	bool has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
 	bool has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
@@ -72,59 +79,59 @@ internal bool fn_math_point_in_triangle(vec2i pt, vec2i v1, vec2i v2, vec2i v3)
 	return !(has_neg && has_pos);
 }
 
-internal inline float fn_math_lerpf(float a, float b, float t)
+internal inline f32 fn_math_lerpf(f32 a, f32 b, f32 t)
 {
 	return (a * (1.0f - t)) + (b * t);
 }
 
-internal inline float fn_math_vec3_length(const vec3* v)
+internal inline f32 fn_math_vec3f_length(const vec3f* v)
 {
 	return sqrtf(v->x * v->x + v->y * v->y + v->z * v->z);
 }
 
-internal inline void fn_math_vec3_normalize(vec3* v)
+internal inline void fn_math_vec3f_normalize(vec3f* v)
 {
-	float len = fn_math_vec3_length(v);
+	f32 len = fn_math_vec3f_length(v);
 	v->x = v->x / len;
 	v->y = v->y / len;
 	v->z = v->z / len;
 }
 
-internal inline vec3 fn_math_vec3_add(const vec3& lhs, const vec3& rhs)
+internal inline vec3f fn_math_vec3f_add(const vec3f& lhs, const vec3f& rhs)
 {
-	vec3 result = {};
+	vec3f result = {};
 	result.x = lhs.x + rhs.x;
 	result.y = lhs.y + rhs.y;
 	result.z = lhs.z + rhs.z;
 	return result;
 }
 
-internal inline vec3 fn_math_vec3_sub(const vec3& lhs, const vec3& rhs)
+internal inline vec3f fn_math_vec3f_sub(const vec3f& lhs, const vec3f& rhs)
 {
-	vec3 result = {};
+	vec3f result = {};
 	result.x = lhs.x - rhs.x;
 	result.y = lhs.y - rhs.y;
 	result.z = lhs.z - rhs.z;
 	return result;
 }
 
-internal inline float fn_math_vec3_dot(const vec3& lhs, const vec3& rhs)
+internal inline f32 fn_math_vec3f_dot(const vec3f& lhs, const vec3f& rhs)
 {
 	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
 }
 
-internal inline vec3 fn_math_vec3_cross(const vec3& lhs, const vec3& rhs)
+internal inline vec3f fn_math_vec3f_cross(const vec3f& lhs, const vec3f& rhs)
 {
-	vec3 result = {};
+	vec3f result = {};
 	result.x = lhs.y * rhs.z - lhs.z * rhs.y;
 	result.y = lhs.z * rhs.x - lhs.x * rhs.z;
 	result.z = lhs.x * rhs.y - lhs.y * rhs.x;
 	return result;
 }
 
-internal inline vec3 fn_math_vec3_move_in_direction(const vec3& position, const vec3& direction, float scalar)
+internal inline vec3f fn_math_vec3f_move_in_direction(const vec3f& position, const vec3f& direction, f32 scalar)
 {
-	vec3 result = {};
+	vec3f result = {};
 	result.x = position.x + direction.x * scalar;
 	result.y = position.y + direction.y * scalar;
 	result.z = position.z + direction.z * scalar;
@@ -135,17 +142,17 @@ internal inline vec3 fn_math_vec3_move_in_direction(const vec3& position, const 
 
 struct quaternion
 {
-	float x, y, z, w;
+	f32 x, y, z, w;
 };
 
-internal inline float fn_math_quat_length(const quaternion& q)
+internal inline f32 fn_math_quat_length(const quaternion& q)
 {
 	return sqrtf(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
 }
 
 internal inline void fn_math_quat_normalize(quaternion* q)
 {
-	float len = fn_math_quat_length(*q);
+	f32 len = fn_math_quat_length(*q);
 	q->x = q->x / len;
 	q->y = q->y / len;
 	q->z = q->z / len;
@@ -173,7 +180,7 @@ internal inline quaternion fn_math_quat_mul(const quaternion& lhs, const quatern
 	return result;
 }
 
-internal inline quaternion fn_math_quat_mul_vec3(const quaternion& q, const vec3& v)
+internal inline quaternion fn_math_quat_mul_vec3f(const quaternion& q, const vec3f& v)
 {
 	quaternion result = {};
 	result.x = q.w * v.x + q.y * v.z - q.z * v.y;
@@ -184,67 +191,67 @@ internal inline quaternion fn_math_quat_mul_vec3(const quaternion& q, const vec3
 	return result;
 }
 
-internal inline vec3 fn_math_quat_forward(const quaternion& q)
+internal inline vec3f fn_math_quat_forward(const quaternion& q)
 {
-	vec3 forward = {};
+	vec3f forward = {};
 
 	forward.x = 2.0f * (q.x * q.z - q.w * q.y);
 	forward.y = 2.0f * (q.y * q.z + q.w * q.x);
 	forward.z = 1.0f - 2.0f * (q.x * q.x + q.y * q.y);
 
-	fn_math_vec3_normalize(&forward);
+	fn_math_vec3f_normalize(&forward);
 
 	return forward;
 }
 
-internal inline vec3 fn_math_quat_right(const quaternion& q)
+internal inline vec3f fn_math_quat_right(const quaternion& q)
 {
-	vec3 right = {};
+	vec3f right = {};
 
 	right.x = 1.0f - 2.0f * (q.y * q.y + q.z * q.z);
 	right.y = 2.0f * (q.x * q.y - q.w * q.z);
 	right.z = 2.0f * (q.x * q.z + q.w * q.y);
 
-	fn_math_vec3_normalize(&right);
+	fn_math_vec3f_normalize(&right);
 
 	return right;
 }
 
-internal inline vec3 fn_math_quat_up(const quaternion& q)
+internal inline vec3f fn_math_quat_up(const quaternion& q)
 {
-	vec3 up = {};
+	vec3f up = {};
 
 	up.x = 2.0f * (q.x * q.y + q.w * q.z);
 	up.y = 1.0f - 2.0f * (q.x * q.x + q.z * q.z);
 	up.z = 2.0f * (q.y * q.z - q.w * q.x);
 
-	fn_math_vec3_normalize(&up);
+	fn_math_vec3f_normalize(&up);
 
 	return up;
 }
 
-internal inline quaternion fn_math_quat_rotate(float angle, const vec3& axis, const quaternion& rotation)
+internal inline quaternion fn_math_quat_rotate(f32 angle, const vec3f& axis, const quaternion& rotation)
 {
 	quaternion newRotation = {};
-	float sinHalfAngle = sinf(TO_RADIANS(angle) / 2.0f);
+	f32 sinHalfAngle = sinf(to_radians(angle) / 2.0f);
 	newRotation.x = axis.x * sinHalfAngle;
 	newRotation.y = axis.y * sinHalfAngle;
 	newRotation.z = axis.z * sinHalfAngle;
-	newRotation.w = cosf(TO_RADIANS(angle) / 2.0f);
+	newRotation.w = cosf(to_radians(angle) / 2.0f);
 	quaternion result = fn_math_quat_mul(newRotation, rotation);
 	fn_math_quat_normalize(&result);
 	return result;
 }
 
-internal inline quaternion fn_math_quat_angle_axis(float angle, const vec3& axis)
+internal inline quaternion fn_math_quat_angle_axis(f32 angle, const vec3f& axis)
 {
 	quaternion rotation = {};
 
-	float sinHalfAngle = sinf(TO_RADIANS(angle) / 2.0f);
+	f32 sinHalfAngle = sinf(to_radians(angle) / 2.0f);
 	rotation.x = axis.x * sinHalfAngle;
 	rotation.y = axis.y * sinHalfAngle;
 	rotation.z = axis.z * sinHalfAngle;
-	rotation.w = cosf(TO_RADIANS(angle) / 2.0f);
+	rotation.w = cosf(to_radians(angle) / 2.0f);
 
 	fn_math_quat_normalize(&rotation);
 
@@ -255,7 +262,7 @@ internal inline quaternion fn_math_quat_angle_axis(float angle, const vec3& axis
 
 struct mat4
 {
-	float Data[16];
+	f32 Data[16];
 };
 
 internal inline mat4 fn_math_mat4_identity()
@@ -278,7 +285,7 @@ internal inline mat4 fn_math_mat4_mul(const mat4& lhs, const mat4& rhs)
 	{
 		for (int32 col = 0; col < 4; col++)
 		{
-			float sum = 0.0f;
+			f32 sum = 0.0f;
 			for (int32 e = 0; e < 4; e++)
 			{
 				sum += lhs.Data[e + row * 4] * rhs.Data[col + e * 4];
@@ -290,7 +297,7 @@ internal inline mat4 fn_math_mat4_mul(const mat4& lhs, const mat4& rhs)
 	return result;
 }
 
-internal inline mat4 fn_math_mat4_translation(const vec3& position)
+internal inline mat4 fn_math_mat4_translation(const vec3f& position)
 {
 	mat4 translationMatrix = fn_math_mat4_identity();
 
@@ -301,7 +308,7 @@ internal inline mat4 fn_math_mat4_translation(const vec3& position)
 	return translationMatrix;
 }
 
-internal inline mat4 fn_math_mat4_scaling(const vec3& scale)
+internal inline mat4 fn_math_mat4_scaling(const vec3f& scale)
 {
 	mat4 scalingMatrix = fn_math_mat4_identity();
 
@@ -334,7 +341,7 @@ internal inline mat4 fn_math_mat4_quat_to_rotation(const quaternion& q)
 	return result;
 }
 
-internal inline mat4 fn_math_mat4_local_to_world(const vec3& position, const quaternion& rotation, const vec3& scale)
+internal inline mat4 fn_math_mat4_local_to_world(const vec3f& position, const quaternion& rotation, const vec3f& scale)
 {
 	mat4 translation = fn_math_mat4_translation(position);
 	mat4 scaling = fn_math_mat4_scaling(scale);
@@ -345,11 +352,11 @@ internal inline mat4 fn_math_mat4_local_to_world(const vec3& position, const qua
 	return fn_math_mat4_mul(translation, result1);
 }
 
-internal inline mat4 fn_math_mat4_camera_view(const vec3& position, const quaternion& rotation)
+internal inline mat4 fn_math_mat4_camera_view(const vec3f& position, const quaternion& rotation)
 {
 	mat4 rotationMatrix = fn_math_mat4_quat_to_rotation(fn_math_quat_conjugate(rotation));
 
-	vec3 inverse = { };
+	vec3f inverse = { };
 	inverse.x = -position.x;
 	inverse.y = -position.y;
 	inverse.z = -position.z;
@@ -359,10 +366,10 @@ internal inline mat4 fn_math_mat4_camera_view(const vec3& position, const quater
 	return fn_math_mat4_mul(rotationMatrix, translationMatrix);
 }
 
-internal inline mat4 fn_math_mat4_perspective(float fov, float aspectRatio, float zNear, float zFar)
+internal inline mat4 fn_math_mat4_perspective(f32 fov, f32 aspectRatio, f32 zNear, f32 zFar)
 {
-	float tanHalfFOV = tanf(TO_RADIANS(fov) / 2.0f);
-	float zRange = zFar - zNear;
+	f32 tanHalfFOV = tanf(to_radians(fov) / 2.0f);
+	f32 zRange = zFar - zNear;
 
 	mat4 result = {};
 

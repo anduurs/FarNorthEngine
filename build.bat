@@ -28,7 +28,7 @@ set DebugCompilerDefinitions=-DDEBUG_BUILD=1 -DPLATFORM_WIN32=1
 REM 64-bit Debug build
 if not exist .\build\debug\x64 mkdir .\build\debug\x64
 pushd .\build\debug\x64
-del *.pdb > NUL 2> NUL
+del game_*.pdb > NUL 2> NUL
 
 echo Build Lock > lock.tmp
 REM compile the game specific code as a DLL

@@ -16,7 +16,7 @@ struct win32_sound_output_buffer
     int LatencySampleCount;
 };
 
-global_variable LPDIRECTSOUNDBUFFER GlobalSoundBuffer;
+global LPDIRECTSOUNDBUFFER GlobalSoundBuffer;
 
 internal void win32_audio_init_dsound(HWND window, int32 samplesPerSecond, int32 bufferSize)
 {

@@ -21,7 +21,7 @@ struct win32_window_dimension
     int32 Height;
 };
 
-global_variable win32_offscreen_buffer GlobalBackBuffer;
+global win32_offscreen_buffer GlobalBackBuffer;
 
 internal win32_window_dimension win32_window_get_dimension(HWND window)
 {
@@ -73,7 +73,7 @@ internal void win32_window_blit_to_screen(HDC deviceContext, win32_offscreen_buf
         DIB_RGB_COLORS, SRCCOPY);
 }
 
-global_variable WINDOWPLACEMENT GlobalWindowPlacement = { sizeof(GlobalWindowPlacement) };
+global WINDOWPLACEMENT GlobalWindowPlacement = { sizeof(GlobalWindowPlacement) };
 internal void win32_window_toggle_fullscreen(HWND window)
 {
     DWORD windowStyle = GetWindowLong(window, GWL_STYLE);

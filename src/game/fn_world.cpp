@@ -1,6 +1,6 @@
 struct fn_player
 {
-    float SpeedFactor;
+    f32 SpeedFactor;
     vec2f Position;
     vec2f Velocity;
 };

@@ -20,7 +20,7 @@ internal inline FILETIME win32_get_last_write_time(const char* fileName)
     FILETIME lastWriteTime = {};
     WIN32_FILE_ATTRIBUTE_DATA data;
 
-    if (GetFileAttributesExA(fileName, GetFileExInfoStandard, &data)) 
+    if (GetFileAttributesEx(fileName, GetFileExInfoStandard, &data)) 
     {
         lastWriteTime = data.ftLastWriteTime;
     }
@@ -28,23 +28,39 @@ internal inline FILETIME win32_get_last_write_time(const char* fileName)
     return lastWriteTime;
 }
 
-internal win32_game_code win32_load_game_code(const char* sourceDllPath, const char* tempDLLPath)
+internal win32_game_code win32_load_game_code(const char* sourceDllPath, const char* tempDLLPath, const char* lockPath)
 {
     win32_game_code result = {};
-
-    result.LastDLLWriteTime = win32_get_last_write_time(sourceDllPath);
-    CopyFile(sourceDllPath, tempDLLPath, FALSE);
-    result.GameCodeDLL = LoadLibraryA(tempDLLPath);
-
     game_api gameApi = {};
 
-    if (result.GameCodeDLL)
+    WIN32_FILE_ATTRIBUTE_DATA ignored;
+    if (!GetFileAttributesEx(lockPath, GetFileExInfoStandard, &ignored)) 
     {
-        gameApi.Tick = (game_tick*)GetProcAddress(result.GameCodeDLL, "Tick");
-        gameApi.RunFrame = (game_run_frame*)GetProcAddress(result.GameCodeDLL, "RunFrame");
-        gameApi.OutputSound = (game_output_sound*)GetProcAddress(result.GameCodeDLL, "OutputSound");
+        result.LastDLLWriteTime = win32_get_last_write_time(sourceDllPath);
 
-        result.IsValid = gameApi.Tick && gameApi.RunFrame && gameApi.OutputSound;
+        int32 copyCounter = 0;
+
+        while (true)
+        {
+            copyCounter++;
+            assert(copyCounter <= 10);
+            BOOL success = CopyFile(sourceDllPath, tempDLLPath, false);
+            if (success) break;
+
+            DWORD lastErrorCode = GetLastError();
+            if (lastErrorCode == ERROR_FILE_NOT_FOUND) break;
+        }
+
+        result.GameCodeDLL = LoadLibraryA(tempDLLPath);
+
+        if (result.GameCodeDLL)
+        {
+            gameApi.Tick = (game_tick*)GetProcAddress(result.GameCodeDLL, "Tick");
+            gameApi.RunFrame = (game_run_frame*)GetProcAddress(result.GameCodeDLL, "RunFrame");
+            gameApi.OutputSound = (game_output_sound*)GetProcAddress(result.GameCodeDLL, "OutputSound");
+
+            result.IsValid = gameApi.Tick && gameApi.RunFrame && gameApi.OutputSound;
+        }
     }
 
     if (!result.IsValid)
@@ -206,7 +222,7 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
             win32_build_path_in_exe_dir(&win32State, pdbLockName, sizeof(pdbLockName) - 1, pdbLockPath, sizeof(pdbLockPath));
 
             FILETIME DLLWriteTime = win32_get_last_write_time(gameDLLPath);
-            win32_game_code game = win32_load_game_code(gameDLLPath, gameTempDLLPath);
+            win32_game_code game = win32_load_game_code(gameDLLPath, gameTempDLLPath, pdbLockPath);
             game_api gameAPI = game.GameAPI;
 
             uint64 lastTickCounter = win32_time_get_counter();
@@ -237,12 +253,8 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
                 if (CompareFileTime(&newDLLWriteTime, &game.LastDLLWriteTime) != 0)
                 {
-                    DWORD attributes = GetFileAttributes(pdbLockPath);
-                    if (attributes == INVALID_FILE_ATTRIBUTES)
-                    {
-                        win32_unload_game_code(&game);
-                        game = win32_load_game_code(gameDLLPath, gameTempDLLPath);
-                    }
+                    win32_unload_game_code(&game);
+                    game = win32_load_game_code(gameDLLPath, gameTempDLLPath, pdbLockPath);
                 }
 
                 win32_input_process_messages(window, &win32State, newInput);

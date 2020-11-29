@@ -1,3 +1,14 @@
+struct fn_camera
+{
+    f32 FoV;
+    f32 zNear;
+    f32 zFar;
+    
+    vec3f Position;
+    quaternion Rotation;
+
+    mat4 ProjectionMatrix;
+};
 
 internal void fn_renderer_draw_bitmap(game_offscreen_buffer* buffer, fn_bitmap* bitmap, int32 xOffset, int32 yOffset)
 {
@@ -82,22 +93,22 @@ internal void fn_renderer_draw_line_dda(game_offscreen_buffer* buffer, vec2i sta
     int32 x1 = end.x;
     int32 y1 = end.y;
 
-    float dy = (float)(y1 - y0);
-    float dx = (float)(x1 - x0);
-    float steps = 0;
+    f32 dy = (float)(y1 - y0);
+    f32 dx = (float)(x1 - x0);
+    f32 steps = 0;
 
     if (fabsf(dx) > fabsf(dy))
         steps = fabsf(dx);
     else
         steps = fabsf(dy);
 
-    float xStep = dx / steps;
-    float yStep = dy / steps;
+    f32 xStep = dx / steps;
+    f32 yStep = dy / steps;
 
-    float x = (float)x0;
-    float y = (float)y0;
+    f32 x = (float)x0;
+    f32 y = (float)y0;
 
-    for (int i = 0; i < steps; i++)
+    for (int32 i = 0; i < steps; i++)
     {
         fn_renderer_draw_pixel(buffer, x0, y0, red, green, blue);
         x += xStep;
@@ -231,7 +242,7 @@ internal void fn_renderer_draw_triangle(game_offscreen_buffer* buffer, vec2i v1,
     if (v1.y > v3.y) fn_swap(&v1, &v3);
     if (v2.y > v3.y) fn_swap(&v2, &v3);
 
-    AABB boundingBox = fn_math_get_bounding_box_for_triangle(v1, v2, v3);
+    AABB boundingBox = fn_math_get_bounding_box_for_triangle(v1, v2, v3, true);
 
     for (int32 y = boundingBox.Ymin; y <= boundingBox.Ymax; y++)
     {

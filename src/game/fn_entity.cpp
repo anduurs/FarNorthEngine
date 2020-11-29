@@ -6,6 +6,13 @@ constexpr uint32 ENTITY_INDEX_MASK = (1 << ENTITY_INDEX_BITS) - 1;
 constexpr uint32 ENTITY_GENERATION_BITS = 8;
 constexpr uint32 ENTITY_GENERATION_MASK = (1 << ENTITY_GENERATION_BITS) - 1;
 
+struct fn_transform
+{
+    vec3f Position;
+    vec3f Scale;
+    quaternion Rotation;
+};
+
 struct fn_entity
 {
     uint32 EntityId;
@@ -23,12 +30,12 @@ struct velocity2d_component
 
 struct radius_component
 {
-    float Radius;
+    f32 Radius;
 };
 
 struct speed_component
 {
-    float Speed;
+    f32 Speed;
 };
 
 enum fn_entity_flags

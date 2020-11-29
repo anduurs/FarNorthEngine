@@ -97,6 +97,20 @@ internal void fn_game_initialize(game_memory* memory, game_state* gameState)
     gameWorld->Player = fn_memory_alloc_struct(&gameState->WorldArena, fn_player);
     fn_player* player = gameWorld->Player;
 
+    f32 vertices[] = 
+    {
+         // Front
+        -1.0, -1.0,  1.0,
+         1.0, -1.0,  1.0,
+         1.0,  1.0,  1.0,
+        -1.0,  1.0,  1.0,
+        // Back
+        -1.0, -1.0, -1.0,
+         1.0, -1.0, -1.0,
+         1.0,  1.0, -1.0,
+        -1.0,  1.0, -1.0
+    };
+
     player->SpeedFactor = 70.0f;
     player->Position.x = 50.0f;
     player->Position.y = 50.0f;
@@ -191,7 +205,7 @@ internal void fn_game_update(game_memory* memory, game_state* gameState)
     fn_world* gameWorld = gameState->GameWorld;
     fn_player* player = gameWorld->Player;
 
-    float dt = memory->DeltaTime;
+    f32 dt = memory->DeltaTime;
 
     player->Position.x += player->Velocity.x * dt * player->SpeedFactor;
     player->Position.y += player->Velocity.y * dt * player->SpeedFactor;
@@ -205,7 +219,8 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
     fn_renderer_clear_screen(offScreenBuffer, 0x00, 0x00, 0x00);
     //fn_renderer_draw_quad(offScreenBuffer, 500, 400, 80, 80, 0x00, 0xFF, 0xFF);
 
-    fn_renderer_draw_triangle(offScreenBuffer, vec2i{ 500, 500 }, vec2i{ 700, 200 }, vec2i{ 900, 500 }, 0x00, 0xFF, 0x00);
+    fn_renderer_draw_triangle(offScreenBuffer, vec2i{ 500, 500 }, vec2i{ 700, 200 }, vec2i{ 900, 500 }, 0xFF, 0x00, 0x00);
+    //fn_renderer_draw_triangle(offScreenBuffer, vec2i{ 500, 500 }, vec2i{ 700, 200 }, vec2i{ 900, 500 }, 0x00, 0xFF, 0x00);
 
     //fn_renderer_draw_line_dda(offScreenBuffer, vec2i{ 500, 500 }, vec2i{ 700, 200 }, 0xFF, 0x00, 0x00);
     //fn_renderer_draw_line_dda(offScreenBuffer, vec2i{ 900, 500 }, vec2i{ 700, 200 }, 0x00, 0x00, 0xFF);
@@ -221,19 +236,19 @@ internal void fn_game_output_sound(game_memory* memory, game_state* gameState, g
 {
     int16 toneVolume = 0;
     int32 toneHz = 256;
-    int wavePeriod = soundBuffer->SamplesPerSecond / toneHz;
+    int32 wavePeriod = soundBuffer->SamplesPerSecond / toneHz;
 
     int16* sampleOut = soundBuffer->Samples;
 
-    for (int sampleIndex = 0; sampleIndex < soundBuffer->SampleCount; sampleIndex++)
+    for (int32 sampleIndex = 0; sampleIndex < soundBuffer->SampleCount; sampleIndex++)
     {
-        float sineValue = sinf(gameState->tSine);
+        f32 sineValue = sinf(gameState->tSine);
         int16 sampleValue = (int16)(sineValue * toneVolume);
 
         *sampleOut++ = sampleValue;
         *sampleOut++ = sampleValue;
 
-        gameState->tSine += 2.0f * PI * 1.0f / (float)wavePeriod;
+        gameState->tSine += 2.0f * PI * 1.0f / (f32)wavePeriod;
     }
 }
 

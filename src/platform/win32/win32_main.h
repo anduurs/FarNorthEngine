@@ -14,5 +14,5 @@ struct win32_game_code
     game_api GameAPI;
 };
 
-global_variable bool volatile GlobalApplicationRunning;
-global_variable uint64 GlobalPerfCountFrequency;
+global bool volatile GlobalApplicationRunning;
+global uint64 GlobalPerfCountFrequency;

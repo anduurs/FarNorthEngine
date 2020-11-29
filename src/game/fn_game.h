@@ -11,7 +11,7 @@
 
 struct game_state
 {
-    float tSine;
+    f32 tSine;
 
     memory_arena WorldArena;
     fn_world* GameWorld;
