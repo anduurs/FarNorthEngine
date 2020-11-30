@@ -1,5 +1,6 @@
 #include "win32_main.h"
 
+#include "win32_opengl.cpp"
 #include "win32_window.cpp"
 #include "win32_time.cpp"
 #include "win32_file.cpp"
@@ -123,18 +124,21 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
         hInstance, 
         "Far North Engine", 
         windowWidth,
-        windowHeight,
-        platform_rendering_context::SOFTWARE_RENDERING
+        windowHeight
     );
-
-#if !DEBUG_BUILD
-    win32_window_toggle_fullscreen(windowInfo.WindowHandle);
-#endif
 
     if (windowInfo.IsValid)
     {
+        win32_window_init_offscreen_buffer(&GlobalBackBuffer, windowWidth, windowHeight);
+
+#if !DEBUG_BUILD
+        win32_window_toggle_fullscreen(windowInfo.WindowHandle);
+#endif
+
         HDC deviceContext = windowInfo.DeviceContext;
         HWND window = windowInfo.WindowHandle;
+
+        HGLRC openglContext = win32_opengl_context_create(deviceContext, 0, 0, windowWidth, windowHeight);
 
         game_memory gameMemory = {};
 

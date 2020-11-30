@@ -157,8 +157,7 @@ internal win32_window_info win32_window_create
     HINSTANCE hInstance, 
     const char* applicationName, 
     int32 width, 
-    int32 height,
-    platform_rendering_context renderingContext
+    int32 height
 )
 {
     WNDCLASSEX windowClass = {};
@@ -197,11 +196,6 @@ internal win32_window_info win32_window_create
                 result.WindowHandle = window;
                 result.DeviceContext = deviceContext;
                 result.IsValid = true;
-
-                if (renderingContext == platform_rendering_context::SOFTWARE_RENDERING)
-                {
-                    win32_window_init_offscreen_buffer(&GlobalBackBuffer, width, height);
-                }
             }
         }
     }

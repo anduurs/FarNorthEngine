@@ -8,13 +8,17 @@ enum fn_input_action_type
     MOVE_LEFT
 };
 
-struct fn_asset_bitmap_load_job
+struct fn_asset_load_job
 {
     game_assets* Assets;
     char* FileName;
     game_asset_id AssetId;
     task_with_memory* Task;
+
     fn_bitmap* Bitmap;
+    fn_mesh* Mesh;
+    fn_texture* Texture;
+    fn_shader* Shader;
 };
 
 internal task_with_memory* fn_begin_task_with_memory(transient_state* transientState)
@@ -43,38 +47,78 @@ internal void fn_end_task_with_memory(task_with_memory* task)
     task->BeingUsed = false;
 }
 
-internal void fn_assets_bitmap_load_job_callback(platform_job_queue* queue, void* data)
+internal void fn_assets_load_job_callback(platform_job_queue* queue, void* data)
 {
-    fn_asset_bitmap_load_job* job = (fn_asset_bitmap_load_job*)data;
+    fn_asset_load_job* job = (fn_asset_load_job*)data;
 
-    *job->Bitmap = fn_assets_bitmap_load(job->Assets->PlatformAPI, job->FileName);
+    if (job->Bitmap)
+    {
+        *job->Bitmap = fn_assets_bitmap_load(job->Assets->PlatformAPI, job->FileName);
+        _WriteBarrier();
+        job->Assets->Bitmaps[job->AssetId] = job->Bitmap;
+    }
 
-    // @TODO: fence
-    job->Assets->Bitmaps[job->AssetId] = job->Bitmap;
-
+    if (job->Texture)
+    {
+        // @TODO: impl fn_assets_texture_load
+    }
+    
     fn_end_task_with_memory(job->Task);
 }
 
-internal void fn_assets_bitmap_load_async(game_assets* assets, game_asset_id assetId)
+internal void fn_assets_load_async(game_assets* assets, game_asset_id assetId, game_asset_type type)
 {
     task_with_memory* task = fn_begin_task_with_memory(assets->TransientState);
 
     if (task)
     {
-        fn_asset_bitmap_load_job* job = fn_memory_alloc_struct(&task->Arena, fn_asset_bitmap_load_job);
+        fn_asset_load_job* job = fn_memory_alloc_struct(&task->Arena, fn_asset_load_job);
 
         job->Task = task;
-        job->FileName = "C:/dev/FarNorthEngine/data/images/playerspritesheet.png";
         job->AssetId = assetId;
         job->Assets = assets;
-        job->Bitmap = fn_memory_alloc_struct(&assets->Arena, fn_bitmap);
 
-        assets->PlatformAPI->ScheduleJob(assets->TransientState->LowPriorityQueue, fn_assets_bitmap_load_job_callback, job);
+        switch (type)
+        {
+            case AssetType_Bitmap:
+            {
+                job->FileName = "C:/dev/FarNorthEngine/data/images/playerspritesheet.png";
+                job->Bitmap = fn_memory_alloc_struct(&assets->Arena, fn_bitmap);
+            } break;
+            case AssetType_Texture:
+            {
+                job->FileName = "C:/dev/FarNorthEngine/data/textures/container.png";
+                job->Texture = fn_memory_alloc_struct(&assets->Arena, fn_texture);
+            } break;
+        };
+
+        assets->PlatformAPI->ScheduleJob(assets->TransientState->LowPriorityQueue, fn_assets_load_job_callback, job);
     }
+}
+
+internal void fn_camera_initalize(fn_camera* camera, uint32 windowWidth, uint32 windowHeight)
+{
+    camera->FoV = 70.0f;
+    camera->zNear = 0.1f;
+    camera->zFar = 130.0f;
+    camera->Position = vec3f{ 0.0f, 0.0f, 0.0f };
+    camera->Rotation = fn_math_quat_angle_axis(0.0f, vec3f{ 0.0f, 0.0f, 0.0f });
+
+    f32 aspectRatio = (f32)windowWidth / (f32)windowHeight;
+
+    camera->ProjectionMatrix = fn_math_mat4_perspective(
+        camera->FoV,
+        aspectRatio,
+        camera->zNear,
+        camera->zFar
+    );
 }
 
 internal void fn_game_initialize(game_memory* memory, game_state* gameState)
 {
+    fn_camera* camera = &gameState->Camera;
+    fn_camera_initalize(camera, memory->WindowWidth, memory->WindowHeight);
+
     fn_memory_initialize_arena(
         &gameState->WorldArena,
         memory->PersistentStorageSize - sizeof(game_state),
@@ -249,7 +293,7 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
     //fn_renderer_draw_line_dda(offScreenBuffer, vec2i{ 500, 500 }, vec2i{ 900, 500 }, 0x00, 0xFF, 0x00);
 
    /* transient_state* transientState = (transient_state*)memory->TransientStorage;
-    fn_bitmap* bitmap = fn_assets_bitmap_get(&transientState->Assets, GAI_Player);
+    fn_bitmap* bitmap = fn_assets_bitmap_get(&transientState->Assets, AssetId_Player);
     if (bitmap)
         fn_renderer_draw_bitmap(offScreenBuffer, bitmap, (int32)player->Position.x + 200, (int32)player->Position.y);*/
 }
@@ -313,7 +357,7 @@ fn_api FN_GAME_RUN_FRAME(RunFrame)
         transientState->LowPriorityQueue = memory->LowPriorityQueue;
         transientState->HighPriorityQueue = memory->HighPriorityQueue;
 
-        fn_assets_bitmap_load_async(&transientState->Assets, game_asset_id::GAI_Player);
+        fn_assets_load_async(&transientState->Assets, game_asset_id::AssetId_Player, game_asset_type::AssetType_Bitmap);
 
         transientState->IsInitialized = true;
     }

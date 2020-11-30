@@ -1,14 +1,3 @@
-struct fn_camera
-{
-    f32 FoV;
-    f32 zNear;
-    f32 zFar;
-    
-    vec3f Position;
-    quaternion Rotation;
-
-    mat4 ProjectionMatrix;
-};
 
 internal void fn_renderer_draw_bitmap(game_offscreen_buffer* buffer, fn_bitmap* bitmap, int32 xOffset, int32 yOffset)
 {
