@@ -338,6 +338,8 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                     win32_audio_fill_sound_buffer(&soundOutput, byteToLock, bytesToWrite, &soundBuffer);
                 }
 
+                win32_opengl_swap_buffers(deviceContext);
+
                 float secondsElapsedForFrame = win32_time_get_seconds_elapsed(lastFrameCounter, win32_time_get_counter());
 
                 gameMemory.DeltaTime = secondsElapsedForFrame;
@@ -362,7 +364,7 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
                 uint64 endCounter = win32_time_get_counter();
 
-                win32_window_dimension dimension = win32_window_get_dimension(window);
+                /*win32_window_dimension dimension = win32_window_get_dimension(window);
 
                 win32_window_blit_to_screen(
                     deviceContext,
@@ -372,7 +374,7 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                     0, 0,
                     dimension.Width,
                     dimension.Height
-                );
+                );*/
 
                 flipCounter = win32_time_get_counter();
 
@@ -396,6 +398,8 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 lastFrameCounter = endCounter;
                 lastCycleCounter = currentCycleCounter;
             }
+
+            win32_opengl_context_destroy(deviceContext, openglContext);
         }
     }
     

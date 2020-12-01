@@ -13,6 +13,12 @@ struct fn_transform
     quaternion Rotation;
 };
 
+struct fn_renderable
+{
+    fn_transform Transform;
+    game_asset_id AssetId;
+};
+
 struct fn_entity
 {
     uint32 EntityId;
