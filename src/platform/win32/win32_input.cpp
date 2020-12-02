@@ -163,8 +163,9 @@ internal void win32_input_process_messages(HWND window, win32_state* win32State,
             ScreenToClient(window, &currentMousePosition);
 
             auto dim = win32_window_get_dimension(window);
-
-            SetCursorPos(dim.Width/2, dim.Height/2);
+            RECT clientRect;
+            GetClientRect(window, &clientRect);
+            SetCursorPos(clientRect.left + dim.Width, clientRect.top + dim.Height);
 
             input->Mouse.MouseCursorX = (f32)currentMousePosition.x;
             input->Mouse.MouseCursorY = (f32)currentMousePosition.y;

@@ -152,6 +152,21 @@ internal LRESULT CALLBACK win32_window_callback(HWND window, UINT message, WPARA
     return result;
 }
 
+internal void win32_window_center(HWND window, DWORD style, DWORD exStyle)
+{
+    int32 screenWidth = GetSystemMetrics(SM_CXSCREEN);
+    int32 screenHeight = GetSystemMetrics(SM_CYSCREEN);    
+    RECT clientRect;
+    GetClientRect(window, &clientRect);    
+    AdjustWindowRectEx(&clientRect, style, FALSE, exStyle);    
+    int32 clientWidth = clientRect.right - clientRect.left;
+    int32 clientHeight = clientRect.bottom - clientRect.top;    
+    SetWindowPos(window, NULL,
+        screenWidth / 2 - clientWidth / 2,
+        screenHeight / 2 - clientHeight / 2,
+        clientWidth, clientHeight, 0);
+}
+
 internal win32_window_info win32_window_create
 (
     HINSTANCE hInstance, 
@@ -189,6 +204,14 @@ internal win32_window_info win32_window_create
 
         if (window)
         {
+            win32_window_center(window, windowClass.style, 0);
+
+            auto dim = win32_window_get_dimension(window);
+            RECT clientRect;
+            GetClientRect(window, &clientRect);
+            SetCursorPos(clientRect.left + dim.Width, clientRect.top + dim.Height);
+            //SetCursor(0);
+            
             HDC deviceContext = GetDC(window);
 
             if (deviceContext)
