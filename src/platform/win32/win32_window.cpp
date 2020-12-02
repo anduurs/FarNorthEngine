@@ -130,18 +130,18 @@ internal LRESULT CALLBACK win32_window_callback(HWND window, UINT message, WPARA
         PostQuitMessage(0);
     } break;
 
-    case WM_PAINT:
-    {
-        PAINTSTRUCT paint;
-        HDC deviceContext = BeginPaint(window, &paint);
-        int32 x = paint.rcPaint.left;
-        int32 y = paint.rcPaint.top;
-        int32 width = paint.rcPaint.right - paint.rcPaint.left;
-        int32 height = paint.rcPaint.bottom - paint.rcPaint.top;
-        win32_window_dimension dimension = win32_window_get_dimension(window);
-        win32_window_blit_to_screen(deviceContext, &GlobalBackBuffer, dimension.Width, dimension.Height, x, y, width, height);
-        EndPaint(window, &paint);
-    } break;
+    //case WM_PAINT:
+    //{
+    //    PAINTSTRUCT paint;
+    //    HDC deviceContext = BeginPaint(window, &paint);
+    //    int32 x = paint.rcPaint.left;
+    //    int32 y = paint.rcPaint.top;
+    //    int32 width = paint.rcPaint.right - paint.rcPaint.left;
+    //    int32 height = paint.rcPaint.bottom - paint.rcPaint.top;
+    //    win32_window_dimension dimension = win32_window_get_dimension(window);
+    //    win32_window_blit_to_screen(deviceContext, &GlobalBackBuffer, dimension.Width, dimension.Height, x, y, width, height);
+    //    EndPaint(window, &paint);
+    //} break;
 
     default:
     {

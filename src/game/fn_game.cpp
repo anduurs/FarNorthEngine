@@ -31,6 +31,7 @@ struct fn_asset_texture_load_job : fn_asset_load_job
 {
     char* TextureFileName[TextureType_Count];
     fn_texture* Texture;
+    fn_shader* Shader;
 };
 
 struct fn_asset_shader_load_job : fn_asset_load_job
@@ -132,18 +133,20 @@ internal void fn_assets_load_async(game_assets* assets, game_asset_id assetId)
 
             platformAPI->ScheduleJob(lowPriorityQueue, fn_assets_mesh_load_job_callback, meshJob);
 
-            task_with_memory* textureTask = fn_begin_task_with_memory(assets->TransientState);
-            fn_asset_texture_load_job* textureJob = fn_memory_alloc_struct(&textureTask->Arena, fn_asset_texture_load_job);
+            // @TODO(Anders E): All shaders must be loaded and compiled before the textures
 
-            textureJob->Task = textureTask;
-            textureJob->AssetId = assetId;
-            textureJob->Assets = assets;
-            textureJob->TextureFileName[TextureType_Diffuse] = "C:/dev/FarNorthEngine/data/textures/container.png";
-            textureJob->Texture = fn_memory_alloc_struct(&assets->Arena, fn_texture);
+            //task_with_memory* textureTask = fn_begin_task_with_memory(assets->TransientState);
+            //fn_asset_texture_load_job* textureJob = fn_memory_alloc_struct(&textureTask->Arena, fn_asset_texture_load_job);
 
-            platformAPI->ScheduleJob(lowPriorityQueue, fn_assets_texture_load_job_callback, textureJob);
+            //textureJob->Task = textureTask;
+            //textureJob->AssetId = assetId;
+            //textureJob->Assets = assets;
+            //textureJob->TextureFileName[TextureType_Diffuse] = "C:/dev/FarNorthEngine/data/textures/container.png";
+            //textureJob->Texture = fn_memory_alloc_struct(&assets->Arena, fn_texture);
 
-            task_with_memory* shaderTask = fn_begin_task_with_memory(assets->TransientState);
+            //platformAPI->ScheduleJob(lowPriorityQueue, fn_assets_texture_load_job_callback, textureJob);
+
+           /* task_with_memory* shaderTask = fn_begin_task_with_memory(assets->TransientState);
             fn_asset_shader_load_job* shaderJob = fn_memory_alloc_struct(&shaderTask->Arena, fn_asset_shader_load_job);
 
             shaderJob->Task = shaderTask;
@@ -153,7 +156,7 @@ internal void fn_assets_load_async(game_assets* assets, game_asset_id assetId)
             shaderJob->FragmentShaderFileName = "C:/dev/FarNorthEngine/data/shaders/fn_standard_fragment_shader.frag";
             shaderJob->Shader = fn_memory_alloc_struct(&assets->Arena, fn_shader);
 
-            platformAPI->ScheduleJob(lowPriorityQueue, fn_assets_shader_load_job_callback, shaderJob);
+            platformAPI->ScheduleJob(lowPriorityQueue, fn_assets_shader_load_job_callback, shaderJob);*/
         } break;
     };
 }
@@ -197,7 +200,7 @@ internal void fn_game_initialize(game_memory* memory, game_state* gameState)
     gameState->GameWorld = fn_memory_alloc_struct(&gameState->WorldArena, fn_world);
     fn_world* gameWorld = gameState->GameWorld;
 
-    gameWorld->Renderables = (fn_renderable*)fn_memory_alloc(&gameState->WorldArena, sizeof(fn_renderable) * MAX_ENTITIES);
+    gameWorld->Renderables = fn_memory_alloc_array(&gameState->WorldArena, sizeof(fn_renderable) * MAX_ENTITIES, fn_renderable);
     fn_renderable* renderables = gameWorld->Renderables;
 
     fn_renderable renderable = {};
@@ -318,9 +321,9 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
             mat4 cameraViewMatrix = fn_math_mat4_camera_view(camera->Position, camera->Rotation);
             mat4 projectionMatrix = camera->ProjectionMatrix;
 
-            fn_opengl_shader_mat4_load(shader, "localToWorldMatrix", &localToWorldMatrix);
-            fn_opengl_shader_mat4_load(shader, "cameraViewMatrix", &cameraViewMatrix);
-            fn_opengl_shader_mat4_load(shader, "projectionMatrix", &projectionMatrix);
+            fn_opengl_shader_load_mat4(shader, "localToWorldMatrix", &localToWorldMatrix);
+            fn_opengl_shader_load_mat4(shader, "cameraViewMatrix", &cameraViewMatrix);
+            fn_opengl_shader_load_mat4(shader, "projectionMatrix", &projectionMatrix);
 
             glBindVertexArray(mesh->Id);
             int32 size;
@@ -409,15 +412,15 @@ fn_api FN_GAME_RUN_FRAME(RunFrame)
 
         //fn_assets_load_async(&transientState->Assets, game_asset_id::AssetId_Container);
 
-        fn_mesh* mesh = fn_memory_alloc_struct(&transientState->Assets.Arena, fn_mesh);
-        *mesh = fn_assets_mesh_load(memory->PlatformAPI, "");
-        transientState->Assets.Meshes[AssetId_Container] = mesh;
-
         const char* vertShader = "C:/dev/FarNorthEngine/data/shaders/fn_standard_vertex_shader.vert";
         const char* fragShader = "C:/dev/FarNorthEngine/data/shaders/fn_standard_fragment_shader.frag";
         fn_shader* shader = fn_memory_alloc_struct(&transientState->Assets.Arena, fn_shader);
         *shader = fn_assets_shader_load(memory->PlatformAPI, vertShader, fragShader);
         transientState->Assets.Shaders[AssetId_Container] = shader;
+
+        fn_mesh* mesh = fn_memory_alloc_struct(&transientState->Assets.Arena, fn_mesh);
+        *mesh = fn_assets_mesh_load(memory->PlatformAPI, "");
+        transientState->Assets.Meshes[AssetId_Container] = mesh;
 
         transientState->IsInitialized = true;
     }

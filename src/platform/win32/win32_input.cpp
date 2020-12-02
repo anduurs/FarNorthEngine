@@ -155,14 +155,21 @@ internal void win32_input_process_messages(HWND window, win32_state* win32State,
 
         case WM_MOUSEMOVE:
         {
-            POINT mousePosition;
-            GetCursorPos(&mousePosition);
-            ScreenToClient(window, &mousePosition);
+            f32 lastMousePosX = input->Mouse.MouseCursorX;
+            f32 lastMousePosY = input->Mouse.MouseCursorY;
 
-            input->Mouse.MouseCursorX = (f32)mousePosition.x;
-            input->Mouse.MouseCursorY = (f32)mousePosition.y;
+            POINT currentMousePosition;
+            GetCursorPos(&currentMousePosition);
+            ScreenToClient(window, &currentMousePosition);
+
+            auto dim = win32_window_get_dimension(window);
+
+            SetCursorPos(dim.Width/2, dim.Height/2);
+
+            input->Mouse.MouseCursorX = (f32)currentMousePosition.x;
+            input->Mouse.MouseCursorY = (f32)currentMousePosition.y;
             //char printBuffer[256];
-            //sprintf_s(printBuffer, "%f %f \n", (float)mousePosition.x, (float)mousePosition.y);
+            //sprintf_s(printBuffer, "%f %f \n", (float)currentMousePosition.x, (float)currentMousePosition.y);
             //OutputDebugStringA(printBuffer);
         } break;
 
