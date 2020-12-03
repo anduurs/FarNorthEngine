@@ -34,11 +34,11 @@ internal uint32 fn_opengl_mesh_create(const float* vertices, uint32 vertexCount,
     // describe the vertex buffer data layout
     // X - Y - Z - U - V
     //Stride = 4byte + 4byte + 4byte + 4byte + 4byte -> 5 * sizeof(f32)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(f32), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(f32), (void*)0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(f32), (void*)(3 * sizeof(f32)));
-    glEnableVertexAttribArray(1);
+    //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(f32), (void*)(3 * sizeof(f32)));
+    //glEnableVertexAttribArray(1);
     
     return vaoId;
 }

@@ -153,27 +153,6 @@ internal void win32_input_process_messages(HWND window, win32_state* win32State,
             GlobalApplicationRunning = false;
         } break;
 
-        case WM_MOUSEMOVE:
-        {
-            f32 lastMousePosX = input->Mouse.MouseCursorX;
-            f32 lastMousePosY = input->Mouse.MouseCursorY;
-
-            POINT currentMousePosition;
-            GetCursorPos(&currentMousePosition);
-            ScreenToClient(window, &currentMousePosition);
-
-            auto dim = win32_window_get_dimension(window);
-            RECT clientRect;
-            GetClientRect(window, &clientRect);
-            SetCursorPos(clientRect.left + dim.Width, clientRect.top + dim.Height);
-
-            input->Mouse.MouseCursorX = (f32)currentMousePosition.x;
-            input->Mouse.MouseCursorY = (f32)currentMousePosition.y;
-            //char printBuffer[256];
-            //sprintf_s(printBuffer, "%f %f \n", (float)currentMousePosition.x, (float)currentMousePosition.y);
-            //OutputDebugStringA(printBuffer);
-        } break;
-
         case WM_SYSKEYDOWN:
         case WM_KEYDOWN:
         case WM_SYSKEYUP:

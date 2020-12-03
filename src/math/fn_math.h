@@ -354,7 +354,7 @@ internal inline mat4 fn_math_mat4_local_to_world(const vec3f& position, const qu
 
 internal inline mat4 fn_math_mat4_camera_view(const vec3f& position, const quaternion& rotation)
 {
-	mat4 rotationMatrix = fn_math_mat4_quat_to_rotation(fn_math_quat_conjugate(rotation));
+	mat4 rotationMatrix = fn_math_mat4_quat_to_rotation(rotation);
 
 	vec3f inverse = { };
 	inverse.x = -position.x;

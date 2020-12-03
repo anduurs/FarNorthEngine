@@ -89,6 +89,8 @@ struct game_controller_input
     game_button_state RightTrigger;
 };
 
+
+//fn_input_get_key_down(FN_KEY_W)
 struct game_keyboard_input
 {
     uint32 KeyCode;
@@ -100,6 +102,9 @@ struct game_mouse_input
 {
     float MouseCursorX;
     float MouseCursorY;
+
+    f32 MouseDeltaX;
+    f32 MouseDeltaY;
 
     bool LeftMouseButtonPressed;
     bool RightMouseButtonPressed;
@@ -117,7 +122,7 @@ struct game_input
 
 #define fn_api extern "C" __declspec(dllexport)
 
-#define FN_GAME_TICK(name) void name(game_memory* memory)
+#define FN_GAME_TICK(name) void name(game_memory* memory, game_input* input)
 typedef FN_GAME_TICK(game_tick);
 FN_GAME_TICK(fn_game_tick_stub) {}
 

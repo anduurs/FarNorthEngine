@@ -234,20 +234,20 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
             uint64 flipCounter = win32_time_get_counter();
             uint64 lastCycleCounter = __rdtsc();
 
-            int monitorRefreshRate = 60;
+            int32 monitorRefreshRate = 60;
             HDC refreshDC = GetDC(window);
-            int win32RefreshRate = GetDeviceCaps(refreshDC, VREFRESH);
+            int32 win32RefreshRate = GetDeviceCaps(refreshDC, VREFRESH);
             ReleaseDC(window, refreshDC);
 
-            if (win32RefreshRate > 1)
-                monitorRefreshRate = win32RefreshRate;
+            if (win32RefreshRate >= 59)
+                monitorRefreshRate = 60;
 
-            float targetFrameRate = (float)monitorRefreshRate;
-            float targetSecondsPerFrame = 1.0f / targetFrameRate;
+            f32 targetFrameRate = (f32)monitorRefreshRate;
+            f32 targetSecondsPerFrame = 1.0f / targetFrameRate;
 
-            float targetTickRate = targetFrameRate / 2.0f;
-            float targetSecondsPerTick = 1.0f / targetTickRate;
-            float accumulator = 0.0f;
+            f32 targetTickRate = targetFrameRate;
+            f32 targetSecondsPerTick = 1.0f / targetTickRate;
+            f32 accumulator = 0.0f;
 
             gameMemory.FixedDeltaTime = targetSecondsPerTick;
 
@@ -264,6 +264,16 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 win32_input_process_messages(window, &win32State, newInput);
                 win32_input_poll_gamepad(oldInput, newInput);
 
+                POINT currentMousePosition;
+                GetCursorPos(&currentMousePosition);
+
+                auto center = win32_window_get_center(window);
+
+                input->Mouse.MouseCursorX = (f32)currentMousePosition.x;
+                input->Mouse.MouseCursorY = (f32)currentMousePosition.y;
+                input->Mouse.MouseDeltaX = (f32)currentMousePosition.x - (f32)center.CenterX;
+                input->Mouse.MouseDeltaY = (f32)currentMousePosition.y - (f32)center.CenterY;
+
                 if (win32State.InputRecordingIndex)
                 {
                     win32_record_input(&win32State, newInput);
@@ -275,14 +285,15 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 }
 
                 uint64 newTickCounter = win32_time_get_counter();
-                float passedTime = win32_time_get_seconds_elapsed(lastTickCounter, newTickCounter);
+                f32 passedTime = win32_time_get_seconds_elapsed(lastTickCounter, newTickCounter);
                 lastTickCounter = newTickCounter;
 
                 accumulator += passedTime;
 
                 while (accumulator >= targetSecondsPerTick)
                 {
-                    gameAPI.Tick(&gameMemory);
+                    gameAPI.Tick(&gameMemory, newInput);
+                    
                     accumulator -= targetSecondsPerTick;
                 }
 
@@ -294,6 +305,8 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 offScreenBuffer.Data = GlobalBackBuffer.Data;
 
                 gameAPI.RunFrame(&gameMemory, newInput, &offScreenBuffer);
+
+                win32_window_reset_mouse_cursor(window, center);
 
                 if (!win32State.InputPlayingIndex)
                 {
@@ -378,12 +391,10 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
                 flipCounter = win32_time_get_counter();
 
-                game_input* tmp = oldInput;
-                oldInput = newInput;
-                newInput = tmp;
+                fn_swap(oldInput, newInput);
 
                 uint64 currentCycleCounter = __rdtsc();
-#if 0
+#if 1
                 int64 counterElapsed = endCounter - lastFrameCounter;
                 uint64 cyclesElapsed = currentCycleCounter - lastCycleCounter;
 
@@ -392,7 +403,8 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 float MCPF = (float)cyclesElapsed / (1000.0f * 1000.0f);
 
                 char OutputBuffer[256];
-                sprintf_s(OutputBuffer, sizeof(OutputBuffer), "ms/f: %.2f,  fps: %.2f,  mc/f: %.2f\n", MSPerFrame, FPS, MCPF);
+                sprintf_s(OutputBuffer, sizeof(OutputBuffer), "%.2f ms, %.2f fps\n", MSPerFrame, FPS);
+                SetWindowTextA(window, OutputBuffer);
                 OutputDebugStringA(OutputBuffer);
 #endif
                 lastFrameCounter = endCounter;

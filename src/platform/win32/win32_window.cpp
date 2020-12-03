@@ -21,6 +21,13 @@ struct win32_window_dimension
     int32 Height;
 };
 
+struct win32_window_center_pos
+{
+    RECT WindowRect;
+    int32 CenterX;
+    int32 CenterY;
+};
+
 global win32_offscreen_buffer GlobalBackBuffer;
 
 internal win32_window_dimension win32_window_get_dimension(HWND window)
@@ -167,6 +174,54 @@ internal void win32_window_center(HWND window, DWORD style, DWORD exStyle)
         clientWidth, clientHeight, 0);
 }
 
+internal win32_window_center_pos win32_window_get_center(HWND window)
+{
+    win32_window_center_pos result = {};
+
+    RECT windowRect;
+
+    int32 screenWidth = GetSystemMetrics(SM_CXSCREEN);
+    int32 screenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+    GetWindowRect(window, &windowRect);
+
+    if (windowRect.left < 0)
+        windowRect.left = 0;
+
+    if (windowRect.top < 0)
+        windowRect.top = 0;
+
+    if (windowRect.right >= screenWidth)
+        windowRect.right = screenWidth - 1;
+
+    if (windowRect.bottom >= screenHeight - 1)
+        windowRect.bottom = screenHeight - 1;
+
+    result.CenterX = (windowRect.right + windowRect.left) / 2;
+    result.CenterY = (windowRect.top + windowRect.bottom) / 2;
+
+    result.WindowRect = windowRect;
+
+    return result;
+}
+
+internal void win32_window_reset_mouse_cursor(HWND window, win32_window_center_pos center)
+{
+    SetCursorPos(center.CenterX, center.CenterY);
+    SetCapture(window);
+    ClipCursor(&center.WindowRect);
+
+    while (ShowCursor(FALSE) >= 0);
+}
+
+internal void win32_window_deactivate_mouse()
+{
+    ClipCursor(NULL);
+    ReleaseCapture();
+
+    while (ShowCursor(TRUE) < 0);
+}
+
 internal win32_window_info win32_window_create
 (
     HINSTANCE hInstance, 
@@ -205,12 +260,8 @@ internal win32_window_info win32_window_create
         if (window)
         {
             win32_window_center(window, windowClass.style, 0);
-
-            auto dim = win32_window_get_dimension(window);
-            RECT clientRect;
-            GetClientRect(window, &clientRect);
-            SetCursorPos(clientRect.left + dim.Width, clientRect.top + dim.Height);
-            //SetCursor(0);
+            auto center = win32_window_get_center(window);
+            win32_window_reset_mouse_cursor(window, center);
             
             HDC deviceContext = GetDC(window);
 

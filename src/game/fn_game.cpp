@@ -244,30 +244,19 @@ internal void fn_game_process_input(game_memory* memory, game_state* gameState, 
     {
         camera->MoveRight = keyboard->Pressed;
     }
-
-    if (camera->CurrentMouseX != mouse->MouseCursorX)
-        camera->CurrentMouseX = mouse->MouseCursorX;
-
-    if (camera->CurrentMouseY != mouse->MouseCursorY)
-        camera->CurrentMouseY = mouse->MouseCursorY;
 }
 
-internal void fn_game_tick(game_memory* memory, game_state* gameState)
-{
-
-}
-
-internal void fn_game_update(game_memory* memory, game_state* gameState)
+internal void fn_game_tick(game_memory* memory, game_state* gameState, game_input* input)
 {
     fn_world* gameWorld = gameState->GameWorld;
     fn_renderable* renderables = gameWorld->Renderables;
 
-    f32 dt = memory->DeltaTime;
+    f32 dt = memory->FixedDeltaTime;
 
-    renderables[0].Transform.Rotation = fn_math_quat_rotate(dt * 150.0f, vec3f{ 0, 1.0f, 0 }, renderables[0].Transform.Rotation);
-
+    renderables[0].Transform.Rotation = fn_math_quat_rotate(dt * 15.0f, vec3f{ 0, 1.0f, 0 }, renderables[0].Transform.Rotation);
+    
     fn_camera* camera = &gameState->Camera;
-    float speed = 25.0f;
+    f32 speed = 25.0f;
 
     if (camera->MoveForward)
     {
@@ -290,6 +279,38 @@ internal void fn_game_update(game_memory* memory, game_state* gameState)
         vec3f right = fn_math_quat_right(camera->Rotation);
         camera->Position = fn_math_vec3f_move_in_direction(camera->Position, right, -dt * speed);
     }
+
+    
+}
+
+internal void fn_game_update(game_memory* memory, game_state* gameState, game_input* input)
+{
+    f32 dt = memory->DeltaTime;
+    fn_camera* camera = &gameState->Camera;
+    game_mouse_input* mouse = &input->Mouse;
+
+    f32 currentMouseX = mouse->MouseCursorX;
+    f32 currentMouseY = mouse->MouseCursorY;
+
+    bool shouldRotateAroundX = currentMouseY != camera->PreviousMouseY;
+    bool shouldRotateAroundY = currentMouseX != camera->PreviousMouseX;
+
+    f32 sensitivity = 50.0f;
+    f32 pitchChange = mouse->MouseDeltaY * sensitivity * dt;
+    f32 yawChange = mouse->MouseDeltaX * sensitivity * dt;
+
+    if (shouldRotateAroundY)
+    {
+        camera->Rotation = fn_math_quat_rotate(yawChange, vec3f{ 0, 1.0f, 0 }, camera->Rotation);
+    }
+
+    if (shouldRotateAroundX)
+    {
+        camera->Rotation = fn_math_quat_rotate(pitchChange, fn_math_quat_right(camera->Rotation), camera->Rotation);
+    }
+
+    camera->PreviousMouseX = currentMouseX;
+    camera->PreviousMouseY = currentMouseY;
 }
 
 internal void fn_game_render(game_memory* memory, game_state* gameState, game_offscreen_buffer* offScreenBuffer)
@@ -426,20 +447,22 @@ fn_api FN_GAME_RUN_FRAME(RunFrame)
     }
 
     fn_game_process_input(memory, gameState, input);
-    fn_game_update(memory, gameState);
+    fn_game_update(memory, gameState, input);
     fn_game_render(memory, gameState, offScreenBuffer);
 }
 
 fn_api FN_GAME_TICK(Tick)
 {
     assert(sizeof(game_state) <= memory->PersistentStorageSize);
+    if (!memory->IsInitialized) return;
     game_state* gameState = (game_state*)memory->PersistentStorage;
-    fn_game_tick(memory, gameState);
+    fn_game_tick(memory, gameState, input);
 }
 
 fn_api FN_GAME_OUTPUT_SOUND(OutputSound)
 {
     assert(sizeof(game_state) <= memory->PersistentStorageSize);
+    if (!memory->IsInitialized) return;
     game_state* gameState = (game_state*)memory->PersistentStorage;
     fn_game_output_sound(memory, gameState, soundBuffer);
 }
