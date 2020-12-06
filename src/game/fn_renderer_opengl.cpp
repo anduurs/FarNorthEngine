@@ -109,6 +109,16 @@ internal uint32 fn_opengl_shader_create(const char* vertexShaderCode, const char
     return shaderProgramId;
 }
 
+internal void fn_opengl_shader_enable(const fn_shader& shader)
+{
+    glUseProgram(shader.Id);
+}
+
+internal void fn_opengl_shader_disable()
+{
+    glUseProgram(0);
+}
+
 internal void fn_opengl_shader_load_mat4(const fn_shader* shader, const char* uniformName, const mat4* value)
 {
     // @TODO(Anders E): Cache the uniformlocation in a hash table to avoid calling glGetUniformLocation on every load call. Store in shader maybe?

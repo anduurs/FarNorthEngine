@@ -256,7 +256,7 @@ internal void fn_game_tick(game_memory* memory, game_state* gameState, game_inpu
     renderables[0].Transform.Rotation = fn_math_quat_rotate(dt * 15.0f, vec3f{ 0, 1.0f, 0 }, renderables[0].Transform.Rotation);
     
     fn_camera* camera = &gameState->Camera;
-    f32 speed = 25.0f;
+    f32 speed = 15.0f;
 
     if (camera->MoveForward)
     {
@@ -332,7 +332,7 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
 
         if (shader && mesh && texture)
         {
-            glUseProgram(shader->Id);
+            fn_opengl_shader_enable(*shader);
 
             mat4 localToWorldMatrix = fn_math_mat4_local_to_world(
                 renderable->Transform.Position,
@@ -353,11 +353,11 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
             glBindVertexArray(mesh->Id);
             int32 size;
             glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-            glDrawElements(GL_TRIANGLES, size / sizeof(uint32), GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, mesh->IndicesCount, GL_UNSIGNED_INT, 0);
 
             glBindTexture(GL_TEXTURE_2D, 0);
             glBindVertexArray(0);
-            glUseProgram(0);
+            fn_opengl_shader_disable();
         }
     }
 
@@ -452,9 +452,9 @@ fn_api FN_GAME_RUN_FRAME(RunFrame)
         *texture = fn_asset_texture_load(*memory->PlatformAPI, "C:/dev/FarNorthEngine/data/textures/DropPod64_WallsUnfolded_SingleMesh_None_BaseMap.png");
         transientState->Assets.Textures[AssetId_Container] = texture;
 
-        glUseProgram(shader->Id);
-        glUniform1i(glGetUniformLocation(shader->Id, "textureColor"), 0);
-        glUseProgram(0);
+        fn_opengl_shader_enable(*shader);
+        fn_opengl_shader_load_int32(shader, "textureColor", 0);
+        fn_opengl_shader_disable();
 
         transientState->IsInitialized = true;
     }

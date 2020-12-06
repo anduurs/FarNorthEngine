@@ -29,7 +29,7 @@ internal fn_mesh fn_asset_mesh_load(memory_arena* arena, const char* fileName)
     fn_mesh result = {};
 
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(fileName, aiProcess_Triangulate | aiProcess_FlipUVs);
+    const aiScene* scene = importer.ReadFile(fileName, aiProcess_Triangulate | aiProcess_JoinIdenticalVertices);
 
     const aiMesh* mesh = scene->mMeshes[0];
     
@@ -58,27 +58,18 @@ internal fn_mesh fn_asset_mesh_load(memory_arena* arena, const char* fileName)
         vertices[i] = vertex;
     }
 
-    uint32 numOfIndices = 0;
-
-    for (uint32 i = 0; i < mesh->mNumFaces; i++)
-    {
-        aiFace face = mesh->mFaces[i];
-
-        for (uint32 j = 0; j < face.mNumIndices; j++)
-        {
-            numOfIndices++;
-        }
-    }
+    const uint32 vertsPerFace = 3;
+    uint32 numOfIndices = mesh->mNumFaces * vertsPerFace;
 
     uint32* indices = fn_memory_alloc_array(arena, numOfIndices, uint32);
 
     for (uint32 i = 0; i < mesh->mNumFaces; i++)
     {
         aiFace face = mesh->mFaces[i];
-
-        for (uint32 j = 0; j < face.mNumIndices; j++)
+        assert(face.mNumIndices == vertsPerFace);
+        for (uint32 j = 0; j < vertsPerFace; j++)
         {
-            indices[i] = face.mIndices[i];
+            indices[j + i * vertsPerFace] = face.mIndices[j];
         }
     }
 
@@ -87,7 +78,7 @@ internal fn_mesh fn_asset_mesh_load(memory_arena* arena, const char* fileName)
     result.Indices = indices;
     result.IndicesCount = numOfIndices;
 
-    result.Id = fn_opengl_mesh_create(vertices, result.VerticesCount, indices, result.IndicesCount);
+    result.Id = fn_opengl_mesh_create(vertices, numOfVertices, indices, numOfIndices);
 
     return result;
 }
