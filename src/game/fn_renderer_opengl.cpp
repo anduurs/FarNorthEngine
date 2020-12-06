@@ -2,6 +2,8 @@
 #include "../../dependencies/GLEW/include/GL/glew.h"
 #include "../../dependencies/GLEW/include/GL/wglew.h"
 
+#include "fn_renderer.h"
+
 internal void fn_opengl_initalize()
 {
     glewInit();
@@ -12,7 +14,7 @@ internal void fn_opengl_initalize()
     glCullFace(GL_BACK);
 }
 
-internal uint32 fn_opengl_mesh_create(const float* vertices, uint32 vertexCount, const uint16* indices, uint32 indicesCount)
+internal uint32 fn_opengl_mesh_create(const fn_vertex* vertices, uint32 vertexCount, const uint32* indices, uint32 indicesCount)
 {
     uint32 vaoId;
     glGenVertexArrays(1, &vaoId);
@@ -26,19 +28,22 @@ internal uint32 fn_opengl_mesh_create(const float* vertices, uint32 vertexCount,
 
     glBindBuffer(GL_ARRAY_BUFFER, vboId);
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(f32) * vertexCount, vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(fn_vertex) * vertexCount, vertices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboId);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint16) * indicesCount, indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32) * indicesCount, indices, GL_STATIC_DRAW);
 
     // describe the vertex buffer data layout
-    // X - Y - Z - U - V
-    //Stride = 4byte + 4byte + 4byte + 4byte + 4byte -> 5 * sizeof(f32)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(f32), (void*)0);
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(fn_vertex), (void*)0);
+    
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(fn_vertex), (void*)offsetof(fn_vertex, Normal));
 
-    //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(f32), (void*)(3 * sizeof(f32)));
-    //glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(fn_vertex), (void*)offsetof(fn_vertex, TextureCoords));
+
+    glBindVertexArray(0);
     
     return vaoId;
 }

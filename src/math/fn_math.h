@@ -2,9 +2,9 @@
 
 #include <math.h>
 
-#define PI 3.14159265359f
-#define to_radians(angle)(angle * (PI / 180.0f))
-#define to_degrees(radians)(radians * (180.0f / PI))
+#define FN_PI 3.14159265359f
+#define to_radians(angle)(angle * (FN_PI / 180.0f))
+#define to_degrees(radians)(radians * (180.0f / FN_PI))
 
 struct vec2f
 {

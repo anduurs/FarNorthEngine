@@ -73,7 +73,7 @@ internal void fn_assets_bitmap_load_job_callback(platform_job_queue* queue, void
 {
     fn_asset_bitmap_load_job* job = (fn_asset_bitmap_load_job*)data;
 
-    *job->Bitmap = fn_assets_bitmap_load(job->Assets->PlatformAPI, job->FileName);
+    *job->Bitmap = fn_asset_bitmap_load(*job->Assets->PlatformAPI, job->FileName);
     _WriteBarrier();
     job->Assets->Bitmaps[job->AssetId] = job->Bitmap;
     
@@ -84,7 +84,7 @@ internal void fn_assets_mesh_load_job_callback(platform_job_queue* queue, void* 
 {
     fn_asset_mesh_load_job* job = (fn_asset_mesh_load_job*)data;
 
-    *job->Mesh = fn_assets_mesh_load(job->Assets->PlatformAPI, job->FileName);
+    *job->Mesh = fn_asset_mesh_load(nullptr, job->FileName);
     _WriteBarrier();
     job->Assets->Meshes[job->AssetId] = job->Mesh;
 
@@ -95,7 +95,7 @@ internal void fn_assets_texture_load_job_callback(platform_job_queue* queue, voi
 {
     fn_asset_texture_load_job* job = (fn_asset_texture_load_job*)data;
 
-    *job->Texture = fn_assets_texture_load(job->Assets->PlatformAPI, job->TextureFileName[TextureType_Diffuse]);
+    *job->Texture = fn_asset_texture_load(*job->Assets->PlatformAPI, job->TextureFileName[TextureType_Diffuse]);
     _WriteBarrier();
     job->Assets->Textures[job->AssetId] = job->Texture;
 
@@ -106,7 +106,7 @@ internal void fn_assets_shader_load_job_callback(platform_job_queue* queue, void
 {
     fn_asset_shader_load_job* job = (fn_asset_shader_load_job*)data;
 
-    *job->Shader = fn_assets_shader_load(job->Assets->PlatformAPI, job->VertexShaderFileName, job->FragmentShaderFileName);
+    *job->Shader = fn_asset_shader_load(*job->Assets->PlatformAPI, job->VertexShaderFileName, job->FragmentShaderFileName);
     _WriteBarrier();
     job->Assets->Shaders[job->AssetId] = job->Shader;
 
@@ -326,10 +326,11 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
 
     if (renderable)
     {
-        fn_shader* shader = fn_assets_shader_get(&transientState->Assets, renderable->AssetId);
-        fn_mesh* mesh = fn_assets_mesh_get(&transientState->Assets, renderable->AssetId);
+        fn_shader* shader = fn_asset_shader_get(transientState->Assets, renderable->AssetId);
+        fn_mesh* mesh = fn_asset_mesh_get(transientState->Assets, renderable->AssetId);
+        fn_texture* texture = fn_asset_texture_get(transientState->Assets, renderable->AssetId);
 
-        if (shader && mesh)
+        if (shader && mesh && texture)
         {
             glUseProgram(shader->Id);
 
@@ -346,11 +347,15 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
             fn_opengl_shader_load_mat4(shader, "cameraViewMatrix", &cameraViewMatrix);
             fn_opengl_shader_load_mat4(shader, "projectionMatrix", &projectionMatrix);
 
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texture->Id);
+
             glBindVertexArray(mesh->Id);
             int32 size;
             glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-            glDrawElements(GL_TRIANGLES, size / sizeof(uint16), GL_UNSIGNED_SHORT, 0);
+            glDrawElements(GL_TRIANGLES, size / sizeof(uint32), GL_UNSIGNED_INT, 0);
 
+            glBindTexture(GL_TEXTURE_2D, 0);
             glBindVertexArray(0);
             glUseProgram(0);
         }
@@ -388,7 +393,7 @@ internal void fn_game_output_sound(game_memory* memory, game_state* gameState, g
         *sampleOut++ = sampleValue;
         *sampleOut++ = sampleValue;
 
-        gameState->tSine += 2.0f * PI * 1.0f / (f32)wavePeriod;
+        gameState->tSine += 2.0f * FN_PI * 1.0f / (f32)wavePeriod;
     }
 }
 
@@ -436,12 +441,20 @@ fn_api FN_GAME_RUN_FRAME(RunFrame)
         const char* vertShader = "C:/dev/FarNorthEngine/data/shaders/fn_standard_vertex_shader.vert";
         const char* fragShader = "C:/dev/FarNorthEngine/data/shaders/fn_standard_fragment_shader.frag";
         fn_shader* shader = fn_memory_alloc_struct(&transientState->Assets.Arena, fn_shader);
-        *shader = fn_assets_shader_load(memory->PlatformAPI, vertShader, fragShader);
+        *shader = fn_asset_shader_load(*memory->PlatformAPI, vertShader, fragShader);
         transientState->Assets.Shaders[AssetId_Container] = shader;
 
         fn_mesh* mesh = fn_memory_alloc_struct(&transientState->Assets.Arena, fn_mesh);
-        *mesh = fn_assets_mesh_load(memory->PlatformAPI, "");
+        *mesh = fn_asset_mesh_load(&transientState->Assets.Arena, "C:/dev/FarNorthEngine/data/models/DropPod_Crashed.glb");
         transientState->Assets.Meshes[AssetId_Container] = mesh;
+
+        fn_texture* texture = fn_memory_alloc_struct(&transientState->Assets.Arena, fn_texture);
+        *texture = fn_asset_texture_load(*memory->PlatformAPI, "C:/dev/FarNorthEngine/data/textures/DropPod64_WallsUnfolded_SingleMesh_None_BaseMap.png");
+        transientState->Assets.Textures[AssetId_Container] = texture;
+
+        glUseProgram(shader->Id);
+        glUniform1i(glGetUniformLocation(shader->Id, "textureColor"), 0);
+        glUseProgram(0);
 
         transientState->IsInitialized = true;
     }

@@ -66,6 +66,7 @@ internal win32_game_code win32_load_game_code(const char* sourceDllPath, const c
 
     if (!result.IsValid)
     {
+        win32_debug_log("FAILED TO LOAD GAME DLL!");
         gameApi.Tick = fn_game_tick_stub;
         gameApi.RunFrame = fn_game_run_frame_stub;
         gameApi.OutputSound = fn_game_output_sound_stub;
@@ -405,7 +406,7 @@ int32 WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
                 char OutputBuffer[256];
                 sprintf_s(OutputBuffer, sizeof(OutputBuffer), "%.2f ms, %.2f fps\n", MSPerFrame, FPS);
                 SetWindowTextA(window, OutputBuffer);
-                OutputDebugStringA(OutputBuffer);
+                //OutputDebugStringA(OutputBuffer);
 #endif
                 lastFrameCounter = endCounter;
                 lastCycleCounter = currentCycleCounter;

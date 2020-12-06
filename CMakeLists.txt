@@ -16,9 +16,10 @@ list(APPEND CommonCompilerFlags -nologo -Zi -MTd -fp:fast -FC -GR- -EHa- -Oi -Od
 list(APPEND CommonCompilerDefinitions -DDEBUG_BUILD=1 -DPLATFORM_WIN32=1)
 list(APPEND CommonLinkerFlags -incremental:no -opt:ref)
 list(APPEND CommonLinkerLibs user32.lib gdi32.lib winmm.lib opengl32.lib ${DepsDir}/GLEW/lib/glew32s.lib)
-list(APPEND GameLinkerLibs opengl32.lib ${DepsDir}/GLEW/lib/glew32s.lib)
+list(APPEND GameLinkerLibs opengl32.lib ${DepsDir}/GLEW/lib/glew32s.lib ${DepsDir}/assimp/lib/assimp-vc142-mtd.lib)
 
 include_directories(${SourceDir})
+include_directories(${DepsDir}/assimp/include)
 add_compile_options(${CommonCompilerFlags})
 
 add_library(GameLib SHARED ${SourceDir}game/fn_game.cpp)
