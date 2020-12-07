@@ -180,6 +180,11 @@ internal inline quaternion fn_math_quat_mul(const quaternion& lhs, const quatern
 	return result;
 }
 
+inline quaternion operator*(const quaternion& lhs, const quaternion& rhs)
+{
+	return fn_math_quat_mul(lhs, rhs);
+}
+
 internal inline quaternion fn_math_quat_mul_vec3f(const quaternion& q, const vec3f& v)
 {
 	quaternion result = {};
@@ -258,6 +263,16 @@ internal inline quaternion fn_math_quat_angle_axis(f32 angle, const vec3f& axis)
 	return rotation;
 }
 
+internal inline quaternion fn_math_quat_from_euler(const vec3f& eulerAngle)
+{
+	quaternion rotationX = fn_math_quat_angle_axis(eulerAngle.x, vec3f{ 1, 0, 0 });
+	quaternion rotationY = fn_math_quat_angle_axis(eulerAngle.y, vec3f{ 0, 1, 0 });
+	quaternion rotationZ = fn_math_quat_angle_axis(eulerAngle.z, vec3f{ 0, 0, 1 });
+
+	return rotationX * rotationY * rotationZ;
+}
+
+
 // MATRIX SECTION
 
 struct mat4
@@ -295,6 +310,11 @@ internal inline mat4 fn_math_mat4_mul(const mat4& lhs, const mat4& rhs)
 	}
 	
 	return result;
+}
+
+inline mat4 operator*(const mat4& lhs, const mat4& rhs)
+{
+	return fn_math_mat4_mul(lhs, rhs);
 }
 
 internal inline mat4 fn_math_mat4_translation(const vec3f& position)

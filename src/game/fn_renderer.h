@@ -74,6 +74,19 @@ struct fn_texture
     fn_texture_type Type;
 };
 
+struct fn_material
+{
+    fn_texture DiffuseMap;
+    fn_texture SpecularMap;
+    fn_texture NormalMap;
+    float Shininess;
+};
+
+struct fn_light
+{
+
+};
+
 internal uint32 fn_opengl_mesh_create(const fn_vertex* vertices, uint32 vertexCount, const uint32* indices, uint32 indicesCount);
 internal uint32 fn_opengl_texture_create(uint8* data, int32 width, int32 height);
 internal uint32 fn_opengl_shader_create(const char* vertexShaderCode, const char* fragmentShaderCode);

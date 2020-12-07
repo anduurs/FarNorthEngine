@@ -30,7 +30,6 @@ internal fn_mesh fn_asset_mesh_load(memory_arena* arena, const char* fileName)
 
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(fileName, aiProcess_Triangulate | aiProcess_JoinIdenticalVertices);
-
     const aiMesh* mesh = scene->mMeshes[0];
     
     uint32 numOfVertices = mesh->mNumVertices;
@@ -134,6 +133,12 @@ internal inline fn_texture* fn_asset_texture_get(game_assets& assets, game_asset
 {
     fn_texture* texture = assets.Textures[id];
     return texture;
+}
+
+internal inline fn_material* fn_asset_material_get(game_assets& assets, game_asset_id id)
+{
+    fn_material* mat = assets.Materials[id];
+    return mat;
 }
 
 internal inline fn_shader* fn_asset_shader_get(game_assets& assets, game_asset_id id)
