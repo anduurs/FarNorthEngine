@@ -34,6 +34,19 @@ struct fn_vertex
     vec3f Position;
     vec3f Normal;
     vec2f TextureCoords;
+    vec3f Tangent;
+};
+
+struct fn_mesh_quad
+{
+    uint32 vaoId;
+    uint32 vboId;
+};
+
+struct fn_framebuffer
+{
+    uint32 FrameBufferId;
+    uint32 ColorBufferId;
 };
 
 struct fn_mesh
@@ -82,11 +95,21 @@ struct fn_material
     float Shininess;
 };
 
-struct fn_light
+struct fn_directional_light
 {
+    vec3f Color;
+    quaternion Rotation;
+    f32 Intensity;
+};
 
+struct fn_render_state
+{
+    fn_directional_light DirectionalLight;
+    fn_mesh_quad PostProcessQuad;
+    fn_shader PostProcessShader;
+    fn_framebuffer SceneFramebuffer;
 };
 
 internal uint32 fn_opengl_mesh_create(const fn_vertex* vertices, uint32 vertexCount, const uint32* indices, uint32 indicesCount);
-internal uint32 fn_opengl_texture_create(uint8* data, int32 width, int32 height);
+internal uint32 fn_opengl_texture_create(uint8* data, int32 width, int32 height, fn_texture_type type);
 internal uint32 fn_opengl_shader_create(const char* vertexShaderCode, const char* fragmentShaderCode);

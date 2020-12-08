@@ -3,7 +3,7 @@
 
 #include "fn_asset.h"
 
-internal fn_texture fn_asset_texture_load(const platform_api& platformAPI, const char* fileName)
+internal fn_texture fn_asset_texture_load(const platform_api& platformAPI, const char* fileName, fn_texture_type type)
 {
     fn_texture result = {};
 
@@ -17,7 +17,8 @@ internal fn_texture fn_asset_texture_load(const platform_api& platformAPI, const
     uint8* imageData = stbi_load_from_memory((uint8*)file.Data, (int)file.FileSize, &width, &height, &comp, 0);
     platformAPI.FreeFile(&file);
 
-    result.Id = fn_opengl_texture_create(imageData, width, height);
+    result.Id = fn_opengl_texture_create(imageData, width, height, type);
+    result.Type = type;
 
     stbi_image_free(imageData);
 
@@ -29,7 +30,7 @@ internal fn_mesh fn_asset_mesh_load(memory_arena* arena, const char* fileName)
     fn_mesh result = {};
 
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(fileName, aiProcess_Triangulate | aiProcess_JoinIdenticalVertices);
+    const aiScene* scene = importer.ReadFile(fileName, aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace);
     const aiMesh* mesh = scene->mMeshes[0];
     
     uint32 numOfVertices = mesh->mNumVertices;
@@ -49,6 +50,11 @@ internal fn_mesh fn_asset_mesh_load(memory_arena* arena, const char* fileName)
         vertex.Normal.x = normal.x;
         vertex.Normal.y = normal.y;
         vertex.Normal.z = normal.z;
+
+        aiVector3D tangent = mesh->mTangents[i];
+        vertex.Tangent.x = tangent.x;
+        vertex.Tangent.y = tangent.y;
+        vertex.Tangent.z = tangent.z;
 
         aiVector3D uv = mesh->mTextureCoords[0][i];
         vertex.TextureCoords.x = uv.x;

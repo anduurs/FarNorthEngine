@@ -28,6 +28,8 @@ struct transient_state
 
     memory_arena TransientArena;
 
+    fn_render_state* RenderState;
+
     task_with_memory Tasks[4];
 
     platform_job_queue* HighPriorityQueue;

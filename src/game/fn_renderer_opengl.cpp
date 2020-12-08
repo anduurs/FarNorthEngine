@@ -12,6 +12,7 @@ internal void fn_opengl_initalize()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
+    //glEnable(GL_FRAMEBUFFER_SRGB);
 }
 
 internal uint32 fn_opengl_mesh_create(const fn_vertex* vertices, uint32 vertexCount, const uint32* indices, uint32 indicesCount)
@@ -43,12 +44,46 @@ internal uint32 fn_opengl_mesh_create(const fn_vertex* vertices, uint32 vertexCo
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(fn_vertex), (void*)offsetof(fn_vertex, TextureCoords));
 
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(fn_vertex), (void*)offsetof(fn_vertex, Tangent));
+
     glBindVertexArray(0);
     
     return vaoId;
 }
 
-internal uint32 fn_opengl_texture_create(uint8* data, int32 width, int32 height)
+internal fn_mesh_quad fn_opengl_mesh_create_quad()
+{
+    fn_mesh_quad result = {};
+
+    f32 positions[] = 
+    { 
+        -1.0f,  1.0f,  0.0f, 1.0f,
+        -1.0f, -1.0f,  0.0f, 0.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+
+        -1.0f,  1.0f,  0.0f, 1.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+         1.0f,  1.0f,  1.0f, 1.0f 
+    };
+
+    uint32 vaoId, vboId;
+    glGenVertexArrays(1, &vaoId);
+    glBindVertexArray(vaoId);
+    glGenBuffers(1, &vboId);
+    glBindBuffer(GL_ARRAY_BUFFER, vboId);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), &positions, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void*)(2 * sizeof(f32)));
+    glBindVertexArray(0);
+    result.vaoId = vaoId;
+    result.vboId = vboId;
+    return result;
+}
+
+internal uint32 fn_opengl_texture_create(uint8* data, int32 width, int32 height, fn_texture_type type)
 {
     uint32 id;
 
@@ -57,15 +92,73 @@ internal uint32 fn_opengl_texture_create(uint8* data, int32 width, int32 height)
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
+    // @TODO(Anders): fix gamma correction
+    /*if (type == fn_texture_type::TextureType_Diffuse)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    else
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);*/
+
     glGenerateMipmap(GL_TEXTURE_2D);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     return id;
+}
+
+internal fn_framebuffer fn_opengl_framebuffer_create(int32 width, int32 height)
+{
+    fn_framebuffer result = {};
+
+    uint32 fboId;
+    glGenFramebuffers(1, &fboId);
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, fboId);
+
+    uint32 textureId;
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // attach the texture to the framebuffer as a color buffer attachment
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0);
+
+    uint32 rboId;
+    glGenRenderbuffers(1, &rboId);
+    glBindRenderbuffer(GL_RENDERBUFFER, rboId);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+
+    // attach the render buffer object to the framebuffer as a depth and stencil buffer attachment (24 bits for depth and 8 bits for stencil)
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboId);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        // @TODO(Anders E): error logging
+    }
+
+    result.FrameBufferId = fboId;
+    result.ColorBufferId = textureId;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    return result;
+}
+
+internal void fn_opengl_framebuffer_enable(const fn_framebuffer* fbo)
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo->FrameBufferId);
+}
+
+internal void fn_opengl_framebuffer_disable()
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 internal uint32 fn_opengl_shader_create(const char* vertexShaderCode, const char* fragmentShaderCode)

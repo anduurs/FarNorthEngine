@@ -95,7 +95,7 @@ internal void fn_assets_texture_load_job_callback(platform_job_queue* queue, voi
 {
     fn_asset_texture_load_job* job = (fn_asset_texture_load_job*)data;
 
-    *job->Texture = fn_asset_texture_load(*job->Assets->PlatformAPI, job->TextureFileName[TextureType_Diffuse]);
+    *job->Texture = fn_asset_texture_load(*job->Assets->PlatformAPI, job->TextureFileName[TextureType_Diffuse], TextureType_Diffuse);
     _WriteBarrier();
     job->Assets->Textures[job->AssetId] = job->Texture;
 
@@ -206,7 +206,7 @@ internal void fn_game_initialize(game_memory* memory, game_state* gameState)
     fn_renderable renderable = {};
     renderable.AssetId = game_asset_id::AssetId_Container;
     fn_transform transform = {};
-    transform.Position = vec3f {0, -1.0f, -3.0f};
+    transform.Position = vec3f {0, -2.0f, -4.0f};
     transform.Scale = vec3f {1, 1, 1};
     transform.Rotation = fn_math_quat_angle_axis(0.0f, vec3f{ 0.0f, 0.0f, 0.0f });
     renderable.Transform = transform;
@@ -317,12 +317,18 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
 {
     transient_state* transientState = (transient_state*)memory->TransientStorage;
     fn_world* gameWorld = gameState->GameWorld;
-    fn_renderable* renderable = &gameWorld->Renderables[0];
 
     fn_camera* camera = &gameState->Camera;
+    fn_render_state* renderState = transientState->RenderState;
+
+    fn_opengl_framebuffer_enable(&renderState->SceneFramebuffer);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+   
+    fn_renderable* renderable = &gameWorld->Renderables[0];
 
     if (renderable)
     {
@@ -353,6 +359,9 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, material->SpecularMap.Id);
 
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, material->NormalMap.Id);
+
             glBindVertexArray(mesh->Id);
             int32 size;
             glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
@@ -362,6 +371,23 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
             fn_opengl_shader_disable();
         }
     }
+
+    fn_opengl_framebuffer_disable();    
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    fn_opengl_shader_enable(renderState->PostProcessShader);
+
+    glBindVertexArray(renderState->PostProcessQuad.vaoId);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, renderState->SceneFramebuffer.ColorBufferId);
+    
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glBindVertexArray(0);
+    fn_opengl_shader_disable();
 
     //fn_renderer_clear_screen(offScreenBuffer, 0x00, 0x00, 0x00);
     //fn_renderer_draw_quad(offScreenBuffer, 500, 400, 80, 80, 0x00, 0xFF, 0xFF);
@@ -447,26 +473,44 @@ fn_api FN_GAME_RUN_FRAME(RunFrame)
         transientState->Assets.Shaders[AssetId_Container] = shader;
 
         fn_mesh* mesh = fn_memory_alloc_struct(&transientState->Assets.Arena, fn_mesh);
-        *mesh = fn_asset_mesh_load(&transientState->Assets.Arena, "C:/dev/FarNorthEngine/data/models/Generator_NoAnim.glb");
+        *mesh = fn_asset_mesh_load(&transientState->Assets.Arena, "C:/dev/FarNorthEngine/data/models/cyborg.obj");
         transientState->Assets.Meshes[AssetId_Container] = mesh;
 
         fn_material* mat = fn_memory_alloc_struct(&transientState->Assets.Arena, fn_material);
-        mat->DiffuseMap = fn_asset_texture_load(*memory->PlatformAPI, "C:/dev/FarNorthEngine/data/textures/Generator_BaseMap.png");
-        mat->SpecularMap = fn_asset_texture_load(*memory->PlatformAPI, "C:/dev/FarNorthEngine/data/textures/Generator_MaskMap.png");
-        mat->NormalMap = fn_asset_texture_load(*memory->PlatformAPI, "C:/dev/FarNorthEngine/data/textures/Generator_Normal.png");
-        mat->Shininess = 32.0f;
+        mat->DiffuseMap = fn_asset_texture_load(*memory->PlatformAPI, "C:/dev/FarNorthEngine/data/textures/cyborg_diffuse.png", fn_texture_type::TextureType_Diffuse);
+        mat->SpecularMap = fn_asset_texture_load(*memory->PlatformAPI, "C:/dev/FarNorthEngine/data/textures/cyborg_specular.png", fn_texture_type::TextureType_Specular);
+        mat->NormalMap = fn_asset_texture_load(*memory->PlatformAPI, "C:/dev/FarNorthEngine/data/textures/cyborg_normal.png", fn_texture_type::TextureType_Normal);
+        mat->Shininess = 16.0f;
         transientState->Assets.Materials[AssetId_Container] = mat;
 
-        vec3f lightColor = vec3f{ 1.0f, 0.7f, 0.8f };
-        quaternion lightRotation = fn_math_quat_angle_axis(40.f, vec3f{ 1, 0, 0 });
+        fn_directional_light lightSource = {};
+        lightSource.Color = vec3f{ 1.0f, 1.0f, 1.0f };
+        lightSource.Rotation = fn_math_quat_angle_axis(45.f, vec3f{ 1, 0, 0 });
+        lightSource.Intensity = 1.0f;
+
+        fn_render_state* renderState = fn_memory_alloc_struct(&transientState->TransientArena, fn_render_state);
+        renderState->DirectionalLight = lightSource;
+        renderState->PostProcessQuad = fn_opengl_mesh_create_quad();
+        renderState->SceneFramebuffer = fn_opengl_framebuffer_create(memory->WindowWidth, memory->WindowHeight);
+
+        const char* postprocessVertShader = "C:/dev/FarNorthEngine/data/shaders/fn_postprocess_vertex_shader.vert";
+        const char* postprocessFragShader = "C:/dev/FarNorthEngine/data/shaders/fn_postprocess_fragment_shader.frag";
+        renderState->PostProcessShader = fn_asset_shader_load(*memory->PlatformAPI, postprocessVertShader, postprocessFragShader);
+
+        transientState->RenderState = renderState;
+
+        fn_opengl_shader_enable(renderState->PostProcessShader);
+        fn_opengl_shader_load_int32(&renderState->PostProcessShader, "sceneTexture", 0);
+        fn_opengl_shader_disable();
 
         fn_opengl_shader_enable(*shader);
         fn_opengl_shader_load_int32(shader, "material.diffuseMap", 0);
         fn_opengl_shader_load_int32(shader, "material.specularMap", 1);
+        fn_opengl_shader_load_int32(shader, "material.normalMap", 2);
         fn_opengl_shader_load_f32(shader, "material.shininess", mat->Shininess);
         fn_opengl_shader_load_f32(shader, "directionalLight.intensity", 1.0f);
-        fn_opengl_shader_load_vec3f(shader, "directionalLight.color", lightColor);
-        fn_opengl_shader_load_vec3f(shader, "directionalLight.direction", fn_math_quat_forward(lightRotation));
+        fn_opengl_shader_load_vec3f(shader, "directionalLight.color", lightSource.Color);
+        fn_opengl_shader_load_vec3f(shader, "lightDirection", fn_math_quat_forward(lightSource.Rotation));
         fn_opengl_shader_disable();
 
         transientState->IsInitialized = true;

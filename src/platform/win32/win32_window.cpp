@@ -80,32 +80,63 @@ internal void win32_window_blit_to_screen(HDC deviceContext, win32_offscreen_buf
         DIB_RGB_COLORS, SRCCOPY);
 }
 
+internal void win32_window_reset_mouse_cursor(HWND window, win32_window_center_pos center)
+{
+    SetCursorPos(center.CenterX, center.CenterY);
+    SetCapture(window);
+    ClipCursor(&center.WindowRect);
+
+    while (ShowCursor(FALSE) >= 0);
+}
+
+internal void win32_window_deactivate_mouse()
+{
+    ClipCursor(NULL);
+    ReleaseCapture();
+
+    while (ShowCursor(TRUE) < 0);
+}
+
 global WINDOWPLACEMENT GlobalWindowPlacement = { sizeof(GlobalWindowPlacement) };
 internal void win32_window_toggle_fullscreen(HWND window)
 {
     DWORD windowStyle = GetWindowLong(window, GWL_STYLE);
 
-    if (windowStyle & WS_OVERLAPPEDWINDOW) {
+    if (windowStyle & WS_OVERLAPPEDWINDOW) 
+    {
         MONITORINFO monitorInfo = { sizeof(monitorInfo) };
 
         if (GetWindowPlacement(window, &GlobalWindowPlacement)
             && GetMonitorInfo(MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY),
-                &monitorInfo)) {
+                &monitorInfo)) 
+        {
             SetWindowLong(window, GWL_STYLE, windowStyle & ~WS_OVERLAPPEDWINDOW);
+
+            int32 x = monitorInfo.rcMonitor.left;
+            int32 y = monitorInfo.rcMonitor.top;
+            int32 width = monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left;
+            int32 height = monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top;
+
             SetWindowPos(window,
                 HWND_TOP,
-                monitorInfo.rcMonitor.left,
-                monitorInfo.rcMonitor.top,
-                monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
-                monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
+                x,
+                y,
+                width,
+                height,
                 SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+
+            glViewport(x, y, width, height);
         }
     }
-    else {
+    else 
+    {
         SetWindowLong(window, GWL_STYLE, windowStyle | WS_OVERLAPPEDWINDOW);
         SetWindowPlacement(window, &GlobalWindowPlacement);
         SetWindowPos(window, NULL, 0, 0, 0, 0,
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+
+        auto d = win32_window_get_dimension(window);
+        glViewport(0, 0, d.Width, d.Height);
     }
 }
 
@@ -203,23 +234,6 @@ internal win32_window_center_pos win32_window_get_center(HWND window)
     result.WindowRect = windowRect;
 
     return result;
-}
-
-internal void win32_window_reset_mouse_cursor(HWND window, win32_window_center_pos center)
-{
-    SetCursorPos(center.CenterX, center.CenterY);
-    SetCapture(window);
-    ClipCursor(&center.WindowRect);
-
-    while (ShowCursor(FALSE) >= 0);
-}
-
-internal void win32_window_deactivate_mouse()
-{
-    ClipCursor(NULL);
-    ReleaseCapture();
-
-    while (ShowCursor(TRUE) < 0);
 }
 
 internal win32_window_info win32_window_create
