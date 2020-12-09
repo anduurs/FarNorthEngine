@@ -41,5 +41,6 @@ void main()
         col += sampleTex[i] * blur_kernel[i];
 
 	//fragColor = vec4(vec3(1.0 - texture(sceneTexture, textureCoords)), 1.0);
-	fragColor = vec4(col, 1.0);
+	//fragColor = vec4(col, 1.0);
+    fragColor = texture(sceneTexture, textureCoords);
 }

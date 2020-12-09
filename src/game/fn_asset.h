@@ -18,7 +18,7 @@ enum game_asset_id
 {
     AssetId_Player,
     AssetId_Container,
-    AssetId_PP,
+    AssetId_Skybox,
     AssetId_Count
 };
 

@@ -319,8 +319,13 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
     fn_world* gameWorld = gameState->GameWorld;
 
     fn_camera* camera = &gameState->Camera;
+
+    mat4 cameraViewMatrix = fn_math_mat4_camera_view(camera->Position, camera->Rotation);
+    mat4 projectionMatrix = camera->ProjectionMatrix;
+
     fn_render_state* renderState = transientState->RenderState;
 
+    // DRAW SCENE
     fn_opengl_framebuffer_enable(&renderState->SceneFramebuffer);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -346,9 +351,6 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
                 renderable->Transform.Scale
             );
 
-            mat4 cameraViewMatrix = fn_math_mat4_camera_view(camera->Position, camera->Rotation);
-            mat4 projectionMatrix = camera->ProjectionMatrix;
-
             fn_opengl_shader_load_mat4(shader, "localToWorldMatrix", &localToWorldMatrix);
             fn_opengl_shader_load_mat4(shader, "cameraViewMatrix", &cameraViewMatrix);
             fn_opengl_shader_load_mat4(shader, "projectionMatrix", &projectionMatrix);
@@ -362,6 +364,9 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
             glActiveTexture(GL_TEXTURE2);
             glBindTexture(GL_TEXTURE_2D, material->NormalMap.Id);
 
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_2D, renderState->SkyboxCubemapTexture.Id);
+
             glBindVertexArray(mesh->Id);
             int32 size;
             glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
@@ -372,11 +377,23 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
         }
     }
 
+    // DRAW SKYBOX
+    glDepthFunc(GL_LEQUAL);
+    fn_opengl_shader_enable(renderState->SkyboxShader);
+    fn_opengl_shader_load_mat4(&renderState->SkyboxShader, "cameraViewMatrix", &cameraViewMatrix);
+    fn_opengl_shader_load_mat4(&renderState->SkyboxShader, "projectionMatrix", &projectionMatrix);
+    glBindVertexArray(renderState->Skybox.vaoId);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, renderState->SkyboxCubemapTexture.Id);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glDepthFunc(GL_LESS);
+    fn_opengl_shader_disable();
+
     fn_opengl_framebuffer_disable();    
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
     glClear(GL_COLOR_BUFFER_BIT);
 
+    // DRAW POSTPROCESS EFFECTS
     fn_opengl_shader_enable(renderState->PostProcessShader);
 
     glBindVertexArray(renderState->PostProcessQuad.vaoId);
@@ -425,7 +442,7 @@ internal void fn_game_output_sound(game_memory* memory, game_state* gameState, g
     }
 }
 
-fn_api FN_GAME_RUN_FRAME(RunFrame)
+FN_API FN_GAME_RUN_FRAME(RunFrame)
 {
     assert(sizeof(game_state) <= memory->PersistentStorageSize);
 
@@ -497,7 +514,29 @@ fn_api FN_GAME_RUN_FRAME(RunFrame)
         const char* postprocessFragShader = "C:/dev/FarNorthEngine/data/shaders/fn_postprocess_fragment_shader.frag";
         renderState->PostProcessShader = fn_asset_shader_load(*memory->PlatformAPI, postprocessVertShader, postprocessFragShader);
 
+        renderState->Skybox = fn_opengl_mesh_create_cube();
+
+        const char* skyboxes[] = 
+        {
+            "C:/dev/FarNorthEngine/data/textures/skybox/right.jpg",
+            "C:/dev/FarNorthEngine/data/textures/skybox/left.jpg",
+            "C:/dev/FarNorthEngine/data/textures/skybox/top.jpg",
+            "C:/dev/FarNorthEngine/data/textures/skybox/bottom.jpg",
+            "C:/dev/FarNorthEngine/data/textures/skybox/front.jpg",
+            "C:/dev/FarNorthEngine/data/textures/skybox/back.jpg"
+        };
+
+        renderState->SkyboxCubemapTexture = fn_opengl_texture_cubemap_create(skyboxes, 6);
+
+        const char* skyboxVertShader = "C:/dev/FarNorthEngine/data/shaders/fn_skybox_vertex_shader.vert";
+        const char* skyboxFragShader = "C:/dev/FarNorthEngine/data/shaders/fn_skybox_fragment_shader.frag";
+        renderState->SkyboxShader = fn_asset_shader_load(*memory->PlatformAPI, skyboxVertShader, skyboxFragShader);
+
         transientState->RenderState = renderState;
+
+        fn_opengl_shader_enable(renderState->SkyboxShader);
+        fn_opengl_shader_load_int32(&renderState->SkyboxShader, "skyboxTexture", 0);
+        fn_opengl_shader_disable();
 
         fn_opengl_shader_enable(renderState->PostProcessShader);
         fn_opengl_shader_load_int32(&renderState->PostProcessShader, "sceneTexture", 0);
@@ -507,6 +546,7 @@ fn_api FN_GAME_RUN_FRAME(RunFrame)
         fn_opengl_shader_load_int32(shader, "material.diffuseMap", 0);
         fn_opengl_shader_load_int32(shader, "material.specularMap", 1);
         fn_opengl_shader_load_int32(shader, "material.normalMap", 2);
+        fn_opengl_shader_load_int32(shader, "skyboxTexture", 3);
         fn_opengl_shader_load_f32(shader, "material.shininess", mat->Shininess);
         fn_opengl_shader_load_f32(shader, "directionalLight.intensity", 1.0f);
         fn_opengl_shader_load_vec3f(shader, "directionalLight.color", lightSource.Color);
@@ -521,7 +561,7 @@ fn_api FN_GAME_RUN_FRAME(RunFrame)
     fn_game_render(memory, gameState, offScreenBuffer);
 }
 
-fn_api FN_GAME_TICK(Tick)
+FN_API FN_GAME_TICK(Tick)
 {
     assert(sizeof(game_state) <= memory->PersistentStorageSize);
     if (!memory->IsInitialized) return;
@@ -529,7 +569,7 @@ fn_api FN_GAME_TICK(Tick)
     fn_game_tick(memory, gameState, input);
 }
 
-fn_api FN_GAME_OUTPUT_SOUND(OutputSound)
+FN_API FN_GAME_OUTPUT_SOUND(OutputSound)
 {
     assert(sizeof(game_state) <= memory->PersistentStorageSize);
     if (!memory->IsInitialized) return;

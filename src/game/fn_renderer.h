@@ -43,6 +43,12 @@ struct fn_mesh_quad
     uint32 vboId;
 };
 
+struct fn_mesh_cube
+{
+    uint32 vaoId;
+    uint32 vboId;
+};
+
 struct fn_framebuffer
 {
     uint32 FrameBufferId;
@@ -108,6 +114,9 @@ struct fn_render_state
     fn_mesh_quad PostProcessQuad;
     fn_shader PostProcessShader;
     fn_framebuffer SceneFramebuffer;
+    fn_mesh_cube Skybox;
+    fn_shader SkyboxShader;
+    fn_texture SkyboxCubemapTexture;
 };
 
 internal uint32 fn_opengl_mesh_create(const fn_vertex* vertices, uint32 vertexCount, const uint32* indices, uint32 indicesCount);

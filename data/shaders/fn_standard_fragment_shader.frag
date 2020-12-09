@@ -26,6 +26,7 @@ struct Material
 
 uniform DirectionalLight directionalLight;
 uniform Material material;
+uniform samplerCube skyboxTexture;
 
 void main()
 {
@@ -51,6 +52,12 @@ void main()
 
     vec4 specularMap = texture(material.specularMap, fs_in.textureCoord);
 
+    float ratio = 1.00 / 1.33;
+    vec3 reflection = texture(skyboxTexture, refract(viewDirection, normal, ratio)).rgb;
+
     specularLight *= specularMap.rgb;
-    fragColor = vec4(ambientFactor + diffuseLight + specularLight, 1.0);
+
+    vec3 totalShade = ambientFactor + diffuseLight + specularLight + reflection * 0.25;
+
+    fragColor = vec4(totalShade, 1.0);
 } 

@@ -120,7 +120,7 @@ struct game_input
 // GAME API
 // Services that the game provides to the platform layer
 
-#define fn_api extern "C" __declspec(dllexport)
+#define FN_API extern "C" __declspec(dllexport)
 
 #define FN_GAME_TICK(name) void name(game_memory* memory, game_input* input)
 typedef FN_GAME_TICK(game_tick);

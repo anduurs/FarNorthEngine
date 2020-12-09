@@ -27,6 +27,7 @@ void main()
 	vec3 T = normalize(vec3(localToWorldMatrix * vec4(attribute_tangent, 0.0)));
 	vec3 N = normalize(vec3(localToWorldMatrix * vec4(attribute_normal, 0.0)));
 
+	// re-orthogonolize the tangent vector
 	T = normalize(T - dot(T, N) * N);
 
 	vec3 B = cross(N, T);
