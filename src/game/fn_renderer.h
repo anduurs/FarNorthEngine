@@ -163,6 +163,6 @@ struct fn_render_state
     fn_texture SkyboxCubemapTexture;
 };
 
-internal uint32 fn_opengl_mesh_create(const fn_vertex* vertices, uint32 vertexCount, const uint32* indices, uint32 indicesCount);
-internal uint32 fn_opengl_texture_create(uint8* data, int32 width, int32 height, fn_texture_type type);
-internal uint32 fn_opengl_shader_create(const char* vertexShaderCode, const char* fragmentShaderCode);
+internal uint32 fn_renderer_mesh_create(const fn_vertex* vertices, uint32 vertexCount, const uint32* indices, uint32 indicesCount);
+internal uint32 fn_renderer_texture_create(uint8* data, int32 width, int32 height, fn_texture_type type);
+internal uint32 fn_renderer_shader_create(const char* vertexShaderCode, const char* fragmentShaderCode);

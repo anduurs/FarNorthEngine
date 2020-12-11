@@ -214,7 +214,7 @@ internal void fn_game_initialize(game_memory* memory, game_state* gameState)
 
     *renderables++ = renderable;
 
-    fn_opengl_initalize();
+    fn_renderer_initalize();
 }
 
 internal void fn_game_process_input(game_memory* memory, game_state* gameState, game_input* input)
@@ -327,7 +327,7 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
     fn_render_state* renderState = transientState->RenderState;
 
     // DRAW SCENE
-    fn_opengl_framebuffer_enable(&renderState->SceneFramebuffer);
+    fn_renderer_framebuffer_enable(&renderState->SceneFramebuffer);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
@@ -344,7 +344,7 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
 
         if (shader && mesh && material)
         {
-            fn_opengl_shader_enable(shader);
+            fn_renderer_shader_enable(shader);
 
             mat4 localToWorldMatrix = fn_math_mat4_local_to_world(
                 renderable->Transform.Position,
@@ -352,9 +352,9 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
                 renderable->Transform.Scale
             );
 
-            fn_opengl_shader_load_mat4(shader, "localToWorldMatrix", &localToWorldMatrix);
-            fn_opengl_shader_load_mat4(shader, "cameraViewMatrix", &cameraViewMatrix);
-            fn_opengl_shader_load_mat4(shader, "projectionMatrix", &projectionMatrix);
+            fn_renderer_shader_load_mat4(shader, "localToWorldMatrix", &localToWorldMatrix);
+            fn_renderer_shader_load_mat4(shader, "cameraViewMatrix", &cameraViewMatrix);
+            fn_renderer_shader_load_mat4(shader, "projectionMatrix", &projectionMatrix);
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, material->DiffuseMap.Id);
@@ -374,28 +374,28 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
             glDrawElements(GL_TRIANGLES, mesh->Data.IndicesCount, GL_UNSIGNED_INT, 0);
 
             glBindVertexArray(0);
-            fn_opengl_shader_disable();
+            fn_renderer_shader_disable();
         }
     }
 
     // DRAW SKYBOX
     glDepthFunc(GL_LEQUAL);
-    fn_opengl_shader_enable(&renderState->SkyboxShader);
-    fn_opengl_shader_load_mat4(&renderState->SkyboxShader, "cameraViewMatrix", &cameraViewMatrix);
-    fn_opengl_shader_load_mat4(&renderState->SkyboxShader, "projectionMatrix", &projectionMatrix);
+    fn_renderer_shader_enable(&renderState->SkyboxShader);
+    fn_renderer_shader_load_mat4(&renderState->SkyboxShader, "cameraViewMatrix", &cameraViewMatrix);
+    fn_renderer_shader_load_mat4(&renderState->SkyboxShader, "projectionMatrix", &projectionMatrix);
     glBindVertexArray(renderState->Skybox.vaoId);
     glBindTexture(GL_TEXTURE_CUBE_MAP, renderState->SkyboxCubemapTexture.Id);
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glDepthFunc(GL_LESS);
-    fn_opengl_shader_disable();
+    fn_renderer_shader_disable();
 
-    fn_opengl_framebuffer_disable();    
+    fn_renderer_framebuffer_disable();    
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // DRAW POSTPROCESS EFFECTS
-    fn_opengl_shader_enable(&renderState->PostProcessShader);
+    fn_renderer_shader_enable(&renderState->PostProcessShader);
 
     glBindVertexArray(renderState->PostProcessQuad.vaoId);
 
@@ -405,7 +405,7 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
     glBindVertexArray(0);
-    fn_opengl_shader_disable();
+    fn_renderer_shader_disable();
 
     //fn_renderer_clear_screen(offScreenBuffer, 0x00, 0x00, 0x00);
     //fn_renderer_draw_quad(offScreenBuffer, 500, 400, 80, 80, 0x00, 0xFF, 0xFF);
@@ -510,15 +510,15 @@ FN_API FN_GAME_RUN_FRAME(RunFrame)
 
         fn_render_state* renderState = fn_memory_alloc_struct(&transientState->TransientArena, fn_render_state);
         renderState->DirectionalLight = lightSource;
-        renderState->PostProcessQuad = fn_opengl_mesh_create_quad();
-        renderState->SceneFramebuffer = fn_opengl_framebuffer_create(memory->WindowWidth, memory->WindowHeight);
+        renderState->PostProcessQuad = fn_renderer_mesh_create_quad();
+        renderState->SceneFramebuffer = fn_renderer_framebuffer_create(memory->WindowWidth, memory->WindowHeight);
 
         const char* postprocessVertShader = "C:/dev/FarNorthEngine/data/shaders/fn_postprocess_vertex_shader.vert";
         const char* postprocessFragShader = "C:/dev/FarNorthEngine/data/shaders/fn_postprocess_fragment_shader.frag";
         fn_shader_data postprocessShaderData = fn_asset_shader_load(memory->PlatformAPI, postprocessVertShader, postprocessFragShader);
         renderState->PostProcessShader = fn_renderer_shader_create(&postprocessShaderData);
 
-        renderState->Skybox = fn_opengl_mesh_create_cube();
+        renderState->Skybox = fn_renderer_mesh_create_cube();
 
         const char* skyboxes[] = 
         {
@@ -530,7 +530,7 @@ FN_API FN_GAME_RUN_FRAME(RunFrame)
             "C:/dev/FarNorthEngine/data/textures/skybox/back.jpg"
         };
 
-        renderState->SkyboxCubemapTexture = fn_opengl_texture_cubemap_create(skyboxes, 6);
+        renderState->SkyboxCubemapTexture = fn_renderer_texture_cubemap_create(skyboxes, 6);
 
         const char* skyboxVertShader = "C:/dev/FarNorthEngine/data/shaders/fn_skybox_vertex_shader.vert";
         const char* skyboxFragShader = "C:/dev/FarNorthEngine/data/shaders/fn_skybox_fragment_shader.frag";
@@ -539,24 +539,24 @@ FN_API FN_GAME_RUN_FRAME(RunFrame)
 
         transientState->RenderState = renderState;
 
-        fn_opengl_shader_enable(&renderState->SkyboxShader);
-        fn_opengl_shader_load_int32(&renderState->SkyboxShader, "skyboxTexture", 0);
-        fn_opengl_shader_disable();
+        fn_renderer_shader_enable(&renderState->SkyboxShader);
+        fn_renderer_shader_load_int32(&renderState->SkyboxShader, "skyboxTexture", 0);
+        fn_renderer_shader_disable();
 
-        fn_opengl_shader_enable(&renderState->PostProcessShader);
-        fn_opengl_shader_load_int32(&renderState->PostProcessShader, "sceneTexture", 0);
-        fn_opengl_shader_disable();
+        fn_renderer_shader_enable(&renderState->PostProcessShader);
+        fn_renderer_shader_load_int32(&renderState->PostProcessShader, "sceneTexture", 0);
+        fn_renderer_shader_disable();
 
-        fn_opengl_shader_enable(shader);
-        fn_opengl_shader_load_int32(shader, "material.diffuseMap", 0);
-        fn_opengl_shader_load_int32(shader, "material.specularMap", 1);
-        fn_opengl_shader_load_int32(shader, "material.normalMap", 2);
-        fn_opengl_shader_load_int32(shader, "skyboxTexture", 3);
-        fn_opengl_shader_load_f32(shader, "material.shininess", mat->Shininess);
-        fn_opengl_shader_load_f32(shader, "directionalLight.intensity", 1.0f);
-        fn_opengl_shader_load_vec3f(shader, "directionalLight.color", lightSource.Color);
-        fn_opengl_shader_load_vec3f(shader, "lightDirection", fn_math_quat_forward(lightSource.Rotation));
-        fn_opengl_shader_disable();
+        fn_renderer_shader_enable(shader);
+        fn_renderer_shader_load_int32(shader, "material.diffuseMap", 0);
+        fn_renderer_shader_load_int32(shader, "material.specularMap", 1);
+        fn_renderer_shader_load_int32(shader, "material.normalMap", 2);
+        fn_renderer_shader_load_int32(shader, "skyboxTexture", 3);
+        fn_renderer_shader_load_f32(shader, "material.shininess", mat->Shininess);
+        fn_renderer_shader_load_f32(shader, "directionalLight.intensity", 1.0f);
+        fn_renderer_shader_load_vec3f(shader, "directionalLight.color", lightSource.Color);
+        fn_renderer_shader_load_vec3f(shader, "lightDirection", fn_math_quat_forward(lightSource.Rotation));
+        fn_renderer_shader_disable();
 
         transientState->IsInitialized = true;
     }

@@ -4,7 +4,7 @@
 
 #include "fn_renderer.h"
 
-internal void fn_opengl_initalize()
+internal void fn_renderer_initalize()
 {
     glewInit();
 
@@ -73,7 +73,7 @@ internal fn_mesh_data fn_renderer_mesh_generate_plane(uint32 vertexCount, size_t
     return result;
 }
 
-internal fn_mesh_quad fn_opengl_mesh_create_quad()
+internal fn_mesh_quad fn_renderer_mesh_create_quad()
 {
     fn_mesh_quad result = {};
 
@@ -104,7 +104,7 @@ internal fn_mesh_quad fn_opengl_mesh_create_quad()
     return result;
 }
 
-internal fn_mesh_cube fn_opengl_mesh_create_cube()
+internal fn_mesh_cube fn_renderer_mesh_create_cube()
 {
     f32 skyboxVertices[] = {      
         -1.0f,  1.0f, -1.0f,
@@ -206,7 +206,7 @@ internal fn_texture fn_renderer_texture_create(const char* fileName, fn_texture_
     return result;
 }
 
-internal fn_texture fn_opengl_texture_cubemap_create(const char** cubemaps, uint32 count)
+internal fn_texture fn_renderer_texture_cubemap_create(const char** cubemaps, uint32 count)
 {
     fn_texture result = {};
     uint32 id;
@@ -236,7 +236,7 @@ internal fn_texture fn_opengl_texture_cubemap_create(const char** cubemaps, uint
     return result;
 }
 
-internal fn_framebuffer fn_opengl_framebuffer_create(int32 width, int32 height)
+internal fn_framebuffer fn_renderer_framebuffer_create(int32 width, int32 height)
 {
     fn_framebuffer result = {};
 
@@ -278,12 +278,12 @@ internal fn_framebuffer fn_opengl_framebuffer_create(int32 width, int32 height)
     return result;
 }
 
-internal void fn_opengl_framebuffer_enable(const fn_framebuffer* fbo)
+internal void fn_renderer_framebuffer_enable(const fn_framebuffer* fbo)
 {
     glBindFramebuffer(GL_FRAMEBUFFER, fbo->FrameBufferId);
 }
 
-internal void fn_opengl_framebuffer_disable()
+internal void fn_renderer_framebuffer_disable()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -337,52 +337,52 @@ internal fn_shader fn_renderer_shader_create(const fn_shader_data* shaderData)
     return result;
 }
 
-internal void fn_opengl_shader_enable(const fn_shader* shader)
+internal void fn_renderer_shader_enable(const fn_shader* shader)
 {
     glUseProgram(shader->ShaderProgramId);
 }
 
-internal void fn_opengl_shader_disable()
+internal void fn_renderer_shader_disable()
 {
     glUseProgram(0);
 }
 
-internal void fn_opengl_shader_load_mat4(const fn_shader* shader, const char* uniformName, const mat4* value)
+internal void fn_renderer_shader_load_mat4(const fn_shader* shader, const char* uniformName, const mat4* value)
 {
     // @TODO(Anders E): Cache the uniformlocation in a hash table to avoid calling glGetUniformLocation on every load call. Store in shader maybe?
     uint32 uniformLocation = glGetUniformLocation(shader->ShaderProgramId, uniformName);
     glUniformMatrix4fv(uniformLocation, 1, GL_TRUE, value->Data);
 }
 
-internal void fn_opengl_shader_load_vec2f(const fn_shader* shader, const char* uniformName, vec2f value)
+internal void fn_renderer_shader_load_vec2f(const fn_shader* shader, const char* uniformName, vec2f value)
 {
     // @TODO(Anders E): Cache the uniformlocation in a hash table to avoid calling glGetUniformLocation on every load call. Store in shader maybe?
     uint32 uniformLocation = glGetUniformLocation(shader->ShaderProgramId, uniformName);
     glUniform2f(uniformLocation, value.x, value.y);
 }
 
-internal void fn_opengl_shader_load_vec3f(const fn_shader* shader, const char* uniformName, vec3f value)
+internal void fn_renderer_shader_load_vec3f(const fn_shader* shader, const char* uniformName, vec3f value)
 {
     // @TODO(Anders E): Cache the uniformlocation in a hash table to avoid calling glGetUniformLocation on every load call. Store in shader maybe?
     uint32 uniformLocation = glGetUniformLocation(shader->ShaderProgramId, uniformName);
     glUniform3f(uniformLocation, value.x, value.y, value.z);
 }
 
-internal void fn_opengl_shader_load_f32(const fn_shader* shader, const char* uniformName, f32 value)
+internal void fn_renderer_shader_load_f32(const fn_shader* shader, const char* uniformName, f32 value)
 {
     // @TODO(Anders E): Cache the uniformlocation in a hash table to avoid calling glGetUniformLocation on every load call. Store in shader maybe?
     uint32 uniformLocation = glGetUniformLocation(shader->ShaderProgramId, uniformName);
     glUniform1f(uniformLocation, value);
 }
 
-internal void fn_opengl_shader_load_int32(const fn_shader* shader, const char* uniformName, int32 value)
+internal void fn_renderer_shader_load_int32(const fn_shader* shader, const char* uniformName, int32 value)
 {
     // @TODO(Anders E): Cache the uniformlocation in a hash table to avoid calling glGetUniformLocation on every load call. Store in shader maybe?
     uint32 uniformLocation = glGetUniformLocation(shader->ShaderProgramId, uniformName);
     glUniform1i(uniformLocation, value);
 }
 
-internal void fn_opengl_shader_load_int32(const fn_shader* shader, const char* uniformName, bool value)
+internal void fn_renderer_shader_load_int32(const fn_shader* shader, const char* uniformName, bool value)
 {
     // @TODO(Anders E): Cache the uniformlocation in a hash table to avoid calling glGetUniformLocation on every load call. Store in shader maybe?
     uint32 uniformLocation = glGetUniformLocation(shader->ShaderProgramId, uniformName);
