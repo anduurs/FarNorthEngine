@@ -159,7 +159,7 @@ struct platform_file_result
     void* Data;
 };
 
-#define FN_PLATFORM_FILE_FREE(name) void name(void* data)
+#define FN_PLATFORM_FILE_FREE(name) void name(platform_file_result file)
 typedef FN_PLATFORM_FILE_FREE(platform_file_free);
 
 #define FN_PLATFORM_FILE_WRITE(name) bool name(const char* fileName, uint32 size, void* data)

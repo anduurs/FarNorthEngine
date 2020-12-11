@@ -29,6 +29,12 @@ struct fn_bitmap
     int32 Height;
 };
 
+struct fn_framebuffer
+{
+    uint32 FrameBufferId;
+    uint32 ColorBufferId;
+};
+
 struct fn_vertex
 {
     vec3f Position;
@@ -43,22 +49,29 @@ struct fn_mesh_quad
     uint32 vboId;
 };
 
+struct fn_mesh_plane
+{
+    uint32 vaoId;
+    uint32 vboId;
+    uint32 iboId;
+
+    uint32 VerticesCount;
+    vec3f* Positions;
+    vec3f* Normals;
+    vec2f* TextureCoords;
+
+    uint32 IndicesCount;
+    uint32* Indices;
+};
+
 struct fn_mesh_cube
 {
     uint32 vaoId;
     uint32 vboId;
 };
 
-struct fn_framebuffer
+struct fn_mesh_data
 {
-    uint32 FrameBufferId;
-    uint32 ColorBufferId;
-};
-
-struct fn_mesh
-{
-    uint32 Id;
-
     uint32 VerticesCount;
     fn_vertex* Vertices;
 
@@ -66,17 +79,32 @@ struct fn_mesh
     uint32* Indices;
 };
 
+struct fn_mesh
+{
+    uint32 vaoId;
+    uint32 vboId;
+    uint32 iboId;
+    fn_mesh_data Data;
+};
+
 enum fn_shader_type
 {
     ShaderType_Standard,
+    ShaderType_PostProcess,
+    ShaderType_Skybox,
     ShaderType_Count
+};
+
+struct fn_shader_data
+{
+    platform_file_result VertexShader;
+    platform_file_result FragmentShader;
 };
 
 struct fn_shader
 {
-    uint32 Id;
-    platform_file_result VertexShaderData;
-    platform_file_result FragmentShaderData;
+    uint32 ShaderProgramId;
+    fn_shader_data Data;
 };
 
 enum fn_texture_type
@@ -85,6 +113,22 @@ enum fn_texture_type
     TextureType_Specular,
     TextureType_Normal,
     TextureType_Count
+};
+
+struct fn_texture_params
+{
+    bool GenerateMipMaps;
+    bool sRGB;
+};
+
+struct fn_texture_data
+{
+    int32 Width;
+    int32 Height;
+    int32 NrChannels;
+    uint8* Data;
+    fn_texture_type Type;
+    fn_texture_params Params;
 };
 
 struct fn_texture

@@ -3,31 +3,9 @@
 
 #include "fn_asset.h"
 
-internal fn_texture fn_asset_texture_load(const platform_api& platformAPI, const char* fileName, fn_texture_type type)
+internal fn_mesh_data fn_asset_mesh_load(memory_arena* arena, const char* fileName)
 {
-    fn_texture result = {};
-
-    platform_file_result file = platformAPI.ReadFile(fileName);
-
-    int32 width;
-    int32 height;
-    int32 comp;
-
-    stbi_set_flip_vertically_on_load(true);
-    uint8* imageData = stbi_load_from_memory((uint8*)file.Data, (int)file.FileSize, &width, &height, &comp, 0);
-    platformAPI.FreeFile(&file);
-
-    result.Id = fn_opengl_texture_create(imageData, width, height, type);
-    result.Type = type;
-
-    stbi_image_free(imageData);
-
-    return result;
-}
-
-internal fn_mesh fn_asset_mesh_load(memory_arena* arena, const char* fileName)
-{
-    fn_mesh result = {};
+    fn_mesh_data result = {};
 
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(fileName, aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace);
@@ -83,38 +61,34 @@ internal fn_mesh fn_asset_mesh_load(memory_arena* arena, const char* fileName)
     result.Indices = indices;
     result.IndicesCount = numOfIndices;
 
-    result.Id = fn_opengl_mesh_create(vertices, numOfVertices, indices, numOfIndices);
-
     return result;
 }
 
-internal fn_shader fn_asset_shader_load(const platform_api& platformAPI, const char* vertexShaderFileName, const char* fragmentShaderFileName)
+internal fn_shader_data fn_asset_shader_load(const platform_api* platformAPI, const char* vertexShaderFileName, const char* fragmentShaderFileName)
 {
-    fn_shader result = {};
+    fn_shader_data result = {};
 
-    platform_file_result vertexShaderFile = platformAPI.ReadFile(vertexShaderFileName);
-    platform_file_result fragmentShaderFile = platformAPI.ReadFile(fragmentShaderFileName);
+    platform_file_result vertexShaderFile = platformAPI->ReadFile(vertexShaderFileName);
+    platform_file_result fragmentShaderFile = platformAPI->ReadFile(fragmentShaderFileName);
 
-    result.VertexShaderData = vertexShaderFile;
-    result.FragmentShaderData = fragmentShaderFile;
-
-    result.Id = fn_opengl_shader_create((const char*)vertexShaderFile.Data, (const char*)fragmentShaderFile.Data);
+    result.VertexShader = vertexShaderFile;
+    result.FragmentShader = fragmentShaderFile;
 
     return result;
 }
 
-internal fn_bitmap fn_asset_bitmap_load(const platform_api& platformAPI, const char* fileName)
+internal fn_bitmap fn_asset_bitmap_load(const platform_api* platformAPI, const char* fileName)
 {
     fn_bitmap result = {};
 
-    platform_file_result file = platformAPI.ReadFile(fileName);
+    platform_file_result file = platformAPI->ReadFile(fileName);
 
     int32 width;
     int32 height;
     int32 comp;
 
     uint8* imageData = stbi_load_from_memory((uint8*)file.Data, (int)file.FileSize, &width, &height, &comp, 4);
-    platformAPI.FreeFile(&file);
+    platformAPI->FreeFile(file);
 
     result.Data = imageData;
     result.Width = width;
@@ -147,8 +121,8 @@ internal inline fn_material* fn_asset_material_get(game_assets& assets, game_ass
     return mat;
 }
 
-internal inline fn_shader* fn_asset_shader_get(game_assets& assets, game_asset_id id)
+internal inline fn_shader* fn_asset_shader_get(game_assets& assets, fn_shader_type type)
 {
-    fn_shader* shader = assets.Shaders[id];
+    fn_shader* shader = assets.Shaders[type];
     return shader;
 }

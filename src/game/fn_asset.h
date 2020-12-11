@@ -18,6 +18,7 @@ enum game_asset_id
 {
     AssetId_Player,
     AssetId_Container,
+    AssetId_Cyborg,
     AssetId_Skybox,
     AssetId_Count
 };
@@ -30,6 +31,6 @@ struct game_assets
     fn_texture* Textures[AssetId_Count];
     fn_material* Materials[AssetId_Count];
     fn_mesh* Meshes[AssetId_Count];
-    fn_shader* Shaders[AssetId_Count];
+    fn_shader* Shaders[fn_shader_type::ShaderType_Count];
     platform_api* PlatformAPI;
 };

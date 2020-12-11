@@ -1,6 +1,6 @@
 internal bool win32_file_write(const char* fileName, uint32 size, void* data);
 internal platform_file_result win32_file_read(const char* fileName);
-internal void win32_file_free(void* data);
+internal void win32_file_free(platform_file_result file);
 
 internal bool win32_file_write(const char* fileName, uint32 size, void* data)
 {
@@ -49,7 +49,7 @@ internal platform_file_result win32_file_read(const char* fileName)
                 }
                 else
                 {
-                    win32_file_free(fileData);
+                    VirtualFree(fileData, 0, MEM_RELEASE);
                     fileData = 0;
                 }
             }
@@ -61,10 +61,10 @@ internal platform_file_result win32_file_read(const char* fileName)
     return result;
 }
 
-internal void win32_file_free(void* data)
+internal void win32_file_free(platform_file_result file)
 {
-    if (data)
+    if (file.Data)
     {
-        VirtualFree(data, 0, MEM_RELEASE);
+        VirtualFree(file.Data, file.FileSize, MEM_RELEASE);
     }
 }

@@ -15,8 +15,10 @@ internal void fn_opengl_initalize()
     //glEnable(GL_FRAMEBUFFER_SRGB);
 }
 
-internal uint32 fn_opengl_mesh_create(const fn_vertex* vertices, uint32 vertexCount, const uint32* indices, uint32 indicesCount)
+internal fn_mesh fn_renderer_mesh_create(fn_mesh_data* data, bool hasTangents = true)
 {
+    fn_mesh result = {};
+
     uint32 vaoId;
     glGenVertexArrays(1, &vaoId);
     glBindVertexArray(vaoId);
@@ -29,27 +31,46 @@ internal uint32 fn_opengl_mesh_create(const fn_vertex* vertices, uint32 vertexCo
 
     glBindBuffer(GL_ARRAY_BUFFER, vboId);
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(fn_vertex) * vertexCount, vertices, GL_STATIC_DRAW);
+    GLsizei vertexSize = hasTangents ? sizeof(fn_vertex) : sizeof(fn_vertex) - sizeof(vec3f);
+
+    glBufferData(GL_ARRAY_BUFFER, vertexSize * (GLsizei)data->VerticesCount, data->Vertices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboId);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32) * indicesCount, indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32) * data->IndicesCount, data->Indices, GL_STATIC_DRAW);
 
     // describe the vertex buffer data layout
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(fn_vertex), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertexSize, (void*)0);
     
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(fn_vertex), (void*)offsetof(fn_vertex, Normal));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertexSize, (void*)offsetof(fn_vertex, Normal));
 
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(fn_vertex), (void*)offsetof(fn_vertex, TextureCoords));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, vertexSize, (void*)offsetof(fn_vertex, TextureCoords));
 
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(fn_vertex), (void*)offsetof(fn_vertex, Tangent));
+    if (hasTangents)
+    {
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, vertexSize, (void*)offsetof(fn_vertex, Tangent));
+    }
 
     glBindVertexArray(0);
     
-    return vaoId;
+    result.vaoId = vaoId;
+    result.vboId = vboId;
+    result.iboId = iboId;
+    result.Data = *data;
+
+    return result;
+}
+
+internal fn_mesh_data fn_renderer_mesh_generate_plane(uint32 vertexCount, size_t size)
+{
+    fn_mesh_data result = {};
+
+
+
+    return result;
 }
 
 internal fn_mesh_quad fn_opengl_mesh_create_quad()
@@ -145,14 +166,25 @@ internal fn_mesh_cube fn_opengl_mesh_create_cube()
     return result;
 }
 
-internal uint32 fn_opengl_texture_create(uint8* data, int32 width, int32 height, fn_texture_type type)
+internal fn_texture fn_renderer_texture_create(const char* fileName, fn_texture_type type)
 {
+    fn_texture result = {};
+
     uint32 id;
 
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
 
+    stbi_set_flip_vertically_on_load(true);
+    int32 width;
+    int32 height;
+    int32 nrChannels;
+
+    uint8* data = stbi_load(fileName, &width, &height, &nrChannels, 0);
+
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+    stbi_image_free(data);
 
     // @TODO(Anders): fix gamma correction
     /*if (type == fn_texture_type::TextureType_Diffuse)
@@ -168,7 +200,10 @@ internal uint32 fn_opengl_texture_create(uint8* data, int32 width, int32 height,
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    return id;
+    result.Id = id;
+    result.Type = type;
+
+    return result;
 }
 
 internal fn_texture fn_opengl_texture_cubemap_create(const char** cubemaps, uint32 count)
@@ -187,6 +222,7 @@ internal fn_texture fn_opengl_texture_cubemap_create(const char** cubemaps, uint
         stbi_set_flip_vertically_on_load(false);
         uint8* data = stbi_load(fileName, &w, &h, &comp, 0);
         glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        stbi_image_free(data);
     }
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -252,10 +288,15 @@ internal void fn_opengl_framebuffer_disable()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-internal uint32 fn_opengl_shader_create(const char* vertexShaderCode, const char* fragmentShaderCode)
+internal fn_shader fn_renderer_shader_create(const fn_shader_data* shaderData)
 {
+    fn_shader result = {};
+
     uint32 vertexShaderId = glCreateShader(GL_VERTEX_SHADER);
     uint32 fragmentShaderId = glCreateShader(GL_FRAGMENT_SHADER);
+
+    const char* vertexShaderCode = static_cast<const char*>(shaderData->VertexShader.Data);
+    const char* fragmentShaderCode = static_cast<const char*>(shaderData->FragmentShader.Data);
 
     glShaderSource(vertexShaderId, 1, &vertexShaderCode, nullptr);
     glCompileShader(vertexShaderId);
@@ -290,12 +331,15 @@ internal uint32 fn_opengl_shader_create(const char* vertexShaderCode, const char
     glDeleteShader(vertexShaderId);
     glDeleteShader(fragmentShaderId);
 
-    return shaderProgramId;
+    result.ShaderProgramId = shaderProgramId;
+    result.Data = *shaderData;
+
+    return result;
 }
 
-internal void fn_opengl_shader_enable(const fn_shader& shader)
+internal void fn_opengl_shader_enable(const fn_shader* shader)
 {
-    glUseProgram(shader.Id);
+    glUseProgram(shader->ShaderProgramId);
 }
 
 internal void fn_opengl_shader_disable()
@@ -306,41 +350,41 @@ internal void fn_opengl_shader_disable()
 internal void fn_opengl_shader_load_mat4(const fn_shader* shader, const char* uniformName, const mat4* value)
 {
     // @TODO(Anders E): Cache the uniformlocation in a hash table to avoid calling glGetUniformLocation on every load call. Store in shader maybe?
-    uint32 uniformLocation = glGetUniformLocation(shader->Id, uniformName);
+    uint32 uniformLocation = glGetUniformLocation(shader->ShaderProgramId, uniformName);
     glUniformMatrix4fv(uniformLocation, 1, GL_TRUE, value->Data);
 }
 
 internal void fn_opengl_shader_load_vec2f(const fn_shader* shader, const char* uniformName, vec2f value)
 {
     // @TODO(Anders E): Cache the uniformlocation in a hash table to avoid calling glGetUniformLocation on every load call. Store in shader maybe?
-    uint32 uniformLocation = glGetUniformLocation(shader->Id, uniformName);
+    uint32 uniformLocation = glGetUniformLocation(shader->ShaderProgramId, uniformName);
     glUniform2f(uniformLocation, value.x, value.y);
 }
 
 internal void fn_opengl_shader_load_vec3f(const fn_shader* shader, const char* uniformName, vec3f value)
 {
     // @TODO(Anders E): Cache the uniformlocation in a hash table to avoid calling glGetUniformLocation on every load call. Store in shader maybe?
-    uint32 uniformLocation = glGetUniformLocation(shader->Id, uniformName);
+    uint32 uniformLocation = glGetUniformLocation(shader->ShaderProgramId, uniformName);
     glUniform3f(uniformLocation, value.x, value.y, value.z);
 }
 
 internal void fn_opengl_shader_load_f32(const fn_shader* shader, const char* uniformName, f32 value)
 {
     // @TODO(Anders E): Cache the uniformlocation in a hash table to avoid calling glGetUniformLocation on every load call. Store in shader maybe?
-    uint32 uniformLocation = glGetUniformLocation(shader->Id, uniformName);
+    uint32 uniformLocation = glGetUniformLocation(shader->ShaderProgramId, uniformName);
     glUniform1f(uniformLocation, value);
 }
 
 internal void fn_opengl_shader_load_int32(const fn_shader* shader, const char* uniformName, int32 value)
 {
     // @TODO(Anders E): Cache the uniformlocation in a hash table to avoid calling glGetUniformLocation on every load call. Store in shader maybe?
-    uint32 uniformLocation = glGetUniformLocation(shader->Id, uniformName);
+    uint32 uniformLocation = glGetUniformLocation(shader->ShaderProgramId, uniformName);
     glUniform1i(uniformLocation, value);
 }
 
 internal void fn_opengl_shader_load_int32(const fn_shader* shader, const char* uniformName, bool value)
 {
     // @TODO(Anders E): Cache the uniformlocation in a hash table to avoid calling glGetUniformLocation on every load call. Store in shader maybe?
-    uint32 uniformLocation = glGetUniformLocation(shader->Id, uniformName);
+    uint32 uniformLocation = glGetUniformLocation(shader->ShaderProgramId, uniformName);
     glUniform1i(uniformLocation, (int32)value);
 }

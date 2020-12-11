@@ -24,7 +24,7 @@ struct fn_asset_bitmap_load_job : fn_asset_load_job
 struct fn_asset_mesh_load_job : fn_asset_load_job
 {
     char* FileName;
-    fn_mesh* Mesh;
+    fn_mesh_data* MeshData;
 };
 
 struct fn_asset_texture_load_job : fn_asset_load_job
@@ -69,97 +69,97 @@ internal void fn_end_task_with_memory(task_with_memory* task)
     task->BeingUsed = false;
 }
 
-internal void fn_assets_bitmap_load_job_callback(platform_job_queue* queue, void* data)
-{
-    fn_asset_bitmap_load_job* job = (fn_asset_bitmap_load_job*)data;
+//internal void fn_assets_bitmap_load_job_callback(platform_job_queue* queue, void* data)
+//{
+//    fn_asset_bitmap_load_job* job = (fn_asset_bitmap_load_job*)data;
+//
+//    *job->Bitmap = fn_asset_bitmap_load(*job->Assets->PlatformAPI, job->FileName);
+//    _WriteBarrier();
+//    job->Assets->Bitmaps[job->AssetId] = job->Bitmap;
+//    
+//    fn_end_task_with_memory(job->Task);
+//}
 
-    *job->Bitmap = fn_asset_bitmap_load(*job->Assets->PlatformAPI, job->FileName);
-    _WriteBarrier();
-    job->Assets->Bitmaps[job->AssetId] = job->Bitmap;
-    
-    fn_end_task_with_memory(job->Task);
-}
+//internal void fn_assets_mesh_load_job_callback(platform_job_queue* queue, void* data)
+//{
+//    fn_asset_mesh_load_job* job = (fn_asset_mesh_load_job*)data;
+//
+//    *job->MeshData = fn_asset_mesh_load(nullptr, job->FileName);
+//    _WriteBarrier();
+//    job->Assets->Meshes[job->AssetId] = job->Mesh;
+//
+//    fn_end_task_with_memory(job->Task);
+//}
 
-internal void fn_assets_mesh_load_job_callback(platform_job_queue* queue, void* data)
-{
-    fn_asset_mesh_load_job* job = (fn_asset_mesh_load_job*)data;
+//internal void fn_assets_texture_load_job_callback(platform_job_queue* queue, void* data)
+//{
+//    fn_asset_texture_load_job* job = (fn_asset_texture_load_job*)data;
+//
+//    *job->Texture = fn_asset_texture_load(*job->Assets->PlatformAPI, job->TextureFileName[TextureType_Diffuse], TextureType_Diffuse);
+//    _WriteBarrier();
+//    job->Assets->Textures[job->AssetId] = job->Texture;
+//
+//    fn_end_task_with_memory(job->Task);
+//}
+//
+//internal void fn_assets_shader_load_job_callback(platform_job_queue* queue, void* data)
+//{
+//    fn_asset_shader_load_job* job = (fn_asset_shader_load_job*)data;
+//
+//    *job->Shader = fn_asset_shader_load(*job->Assets->PlatformAPI, job->VertexShaderFileName, job->FragmentShaderFileName);
+//    _WriteBarrier();
+//    job->Assets->Shaders[job->AssetId] = job->Shader;
+//
+//    fn_end_task_with_memory(job->Task);
+//}
 
-    *job->Mesh = fn_asset_mesh_load(nullptr, job->FileName);
-    _WriteBarrier();
-    job->Assets->Meshes[job->AssetId] = job->Mesh;
-
-    fn_end_task_with_memory(job->Task);
-}
-
-internal void fn_assets_texture_load_job_callback(platform_job_queue* queue, void* data)
-{
-    fn_asset_texture_load_job* job = (fn_asset_texture_load_job*)data;
-
-    *job->Texture = fn_asset_texture_load(*job->Assets->PlatformAPI, job->TextureFileName[TextureType_Diffuse], TextureType_Diffuse);
-    _WriteBarrier();
-    job->Assets->Textures[job->AssetId] = job->Texture;
-
-    fn_end_task_with_memory(job->Task);
-}
-
-internal void fn_assets_shader_load_job_callback(platform_job_queue* queue, void* data)
-{
-    fn_asset_shader_load_job* job = (fn_asset_shader_load_job*)data;
-
-    *job->Shader = fn_asset_shader_load(*job->Assets->PlatformAPI, job->VertexShaderFileName, job->FragmentShaderFileName);
-    _WriteBarrier();
-    job->Assets->Shaders[job->AssetId] = job->Shader;
-
-    fn_end_task_with_memory(job->Task);
-}
-
-internal void fn_assets_load_async(game_assets* assets, game_asset_id assetId)
-{
-    platform_api* platformAPI = assets->PlatformAPI;
-    platform_job_queue* lowPriorityQueue = assets->TransientState->LowPriorityQueue;
-
-    switch (assetId)
-    {
-        case AssetId_Container:
-        {
-            task_with_memory* meshTask = fn_begin_task_with_memory(assets->TransientState);
-            fn_asset_mesh_load_job* meshJob = fn_memory_alloc_struct(&meshTask->Arena, fn_asset_mesh_load_job);
-
-            meshJob->Task = meshTask;
-            meshJob->AssetId = assetId;
-            meshJob->Assets = assets;
-            meshJob->FileName = "C:/dev/FarNorthEngine/data/models/container.glb";
-            meshJob->Mesh = fn_memory_alloc_struct(&assets->Arena, fn_mesh);
-
-            platformAPI->ScheduleJob(lowPriorityQueue, fn_assets_mesh_load_job_callback, meshJob);
-
-            // @TODO(Anders E): All shaders must be loaded and compiled before the textures
-
-            //task_with_memory* textureTask = fn_begin_task_with_memory(assets->TransientState);
-            //fn_asset_texture_load_job* textureJob = fn_memory_alloc_struct(&textureTask->Arena, fn_asset_texture_load_job);
-
-            //textureJob->Task = textureTask;
-            //textureJob->AssetId = assetId;
-            //textureJob->Assets = assets;
-            //textureJob->TextureFileName[TextureType_Diffuse] = "C:/dev/FarNorthEngine/data/textures/container.png";
-            //textureJob->Texture = fn_memory_alloc_struct(&assets->Arena, fn_texture);
-
-            //platformAPI->ScheduleJob(lowPriorityQueue, fn_assets_texture_load_job_callback, textureJob);
-
-           /* task_with_memory* shaderTask = fn_begin_task_with_memory(assets->TransientState);
-            fn_asset_shader_load_job* shaderJob = fn_memory_alloc_struct(&shaderTask->Arena, fn_asset_shader_load_job);
-
-            shaderJob->Task = shaderTask;
-            shaderJob->AssetId = assetId;
-            shaderJob->Assets = assets;
-            shaderJob->VertexShaderFileName = "C:/dev/FarNorthEngine/data/shaders/fn_standard_vertex_shader.vert";
-            shaderJob->FragmentShaderFileName = "C:/dev/FarNorthEngine/data/shaders/fn_standard_fragment_shader.frag";
-            shaderJob->Shader = fn_memory_alloc_struct(&assets->Arena, fn_shader);
-
-            platformAPI->ScheduleJob(lowPriorityQueue, fn_assets_shader_load_job_callback, shaderJob);*/
-        } break;
-    };
-}
+//internal void fn_assets_load_async(game_assets* assets, game_asset_id assetId)
+//{
+//    platform_api* platformAPI = assets->PlatformAPI;
+//    platform_job_queue* lowPriorityQueue = assets->TransientState->LowPriorityQueue;
+//
+//    switch (assetId)
+//    {
+//        case AssetId_Container:
+//        {
+//            //task_with_memory* meshTask = fn_begin_task_with_memory(assets->TransientState);
+//            //fn_asset_mesh_load_job* meshJob = fn_memory_alloc_struct(&meshTask->Arena, fn_asset_mesh_load_job);
+//
+//            //meshJob->Task = meshTask;
+//            //meshJob->AssetId = assetId;
+//            //meshJob->Assets = assets;
+//            //meshJob->FileName = "C:/dev/FarNorthEngine/data/models/container.glb";
+//            //meshJob->Mesh = fn_memory_alloc_struct(&assets->Arena, fn_mesh);
+//
+//            //platformAPI->ScheduleJob(lowPriorityQueue, fn_assets_mesh_load_job_callback, meshJob);
+//
+//            // @TODO(Anders E): All shaders must be loaded and compiled before the textures
+//
+//            //task_with_memory* textureTask = fn_begin_task_with_memory(assets->TransientState);
+//            //fn_asset_texture_load_job* textureJob = fn_memory_alloc_struct(&textureTask->Arena, fn_asset_texture_load_job);
+//
+//            //textureJob->Task = textureTask;
+//            //textureJob->AssetId = assetId;
+//            //textureJob->Assets = assets;
+//            //textureJob->TextureFileName[TextureType_Diffuse] = "C:/dev/FarNorthEngine/data/textures/container.png";
+//            //textureJob->Texture = fn_memory_alloc_struct(&assets->Arena, fn_texture);
+//
+//            //platformAPI->ScheduleJob(lowPriorityQueue, fn_assets_texture_load_job_callback, textureJob);
+//
+//           /* task_with_memory* shaderTask = fn_begin_task_with_memory(assets->TransientState);
+//            fn_asset_shader_load_job* shaderJob = fn_memory_alloc_struct(&shaderTask->Arena, fn_asset_shader_load_job);
+//
+//            shaderJob->Task = shaderTask;
+//            shaderJob->AssetId = assetId;
+//            shaderJob->Assets = assets;
+//            shaderJob->VertexShaderFileName = "C:/dev/FarNorthEngine/data/shaders/fn_standard_vertex_shader.vert";
+//            shaderJob->FragmentShaderFileName = "C:/dev/FarNorthEngine/data/shaders/fn_standard_fragment_shader.frag";
+//            shaderJob->Shader = fn_memory_alloc_struct(&assets->Arena, fn_shader);
+//
+//            platformAPI->ScheduleJob(lowPriorityQueue, fn_assets_shader_load_job_callback, shaderJob);*/
+//        } break;
+//    };
+//}
 
 internal void fn_camera_initalize(fn_camera* camera, uint32 windowWidth, uint32 windowHeight)
 {
@@ -200,11 +200,12 @@ internal void fn_game_initialize(game_memory* memory, game_state* gameState)
     gameState->GameWorld = fn_memory_alloc_struct(&gameState->WorldArena, fn_world);
     fn_world* gameWorld = gameState->GameWorld;
 
-    gameWorld->Renderables = fn_memory_alloc_array(&gameState->WorldArena, sizeof(fn_renderable) * MAX_ENTITIES, fn_renderable);
+    gameWorld->Renderables = fn_memory_alloc_array(&gameState->WorldArena, sizeof(fn_renderable) * 10, fn_renderable);
     fn_renderable* renderables = gameWorld->Renderables;
 
     fn_renderable renderable = {};
     renderable.AssetId = game_asset_id::AssetId_Container;
+    renderable.ShaderId = fn_shader_type::ShaderType_Standard;
     fn_transform transform = {};
     transform.Position = vec3f {0, -2.0f, -4.0f};
     transform.Scale = vec3f {1, 1, 1};
@@ -337,13 +338,13 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
 
     if (renderable)
     {
-        fn_shader* shader = fn_asset_shader_get(transientState->Assets, renderable->AssetId);
+        fn_shader* shader = fn_asset_shader_get(transientState->Assets, renderable->ShaderId);
         fn_mesh* mesh = fn_asset_mesh_get(transientState->Assets, renderable->AssetId);
         fn_material* material = fn_asset_material_get(transientState->Assets, renderable->AssetId);
 
         if (shader && mesh && material)
         {
-            fn_opengl_shader_enable(*shader);
+            fn_opengl_shader_enable(shader);
 
             mat4 localToWorldMatrix = fn_math_mat4_local_to_world(
                 renderable->Transform.Position,
@@ -367,10 +368,10 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
             glActiveTexture(GL_TEXTURE3);
             glBindTexture(GL_TEXTURE_2D, renderState->SkyboxCubemapTexture.Id);
 
-            glBindVertexArray(mesh->Id);
+            glBindVertexArray(mesh->vaoId);
             int32 size;
             glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-            glDrawElements(GL_TRIANGLES, mesh->IndicesCount, GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, mesh->Data.IndicesCount, GL_UNSIGNED_INT, 0);
 
             glBindVertexArray(0);
             fn_opengl_shader_disable();
@@ -379,7 +380,7 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
 
     // DRAW SKYBOX
     glDepthFunc(GL_LEQUAL);
-    fn_opengl_shader_enable(renderState->SkyboxShader);
+    fn_opengl_shader_enable(&renderState->SkyboxShader);
     fn_opengl_shader_load_mat4(&renderState->SkyboxShader, "cameraViewMatrix", &cameraViewMatrix);
     fn_opengl_shader_load_mat4(&renderState->SkyboxShader, "projectionMatrix", &projectionMatrix);
     glBindVertexArray(renderState->Skybox.vaoId);
@@ -394,7 +395,7 @@ internal void fn_game_render(game_memory* memory, game_state* gameState, game_of
     glClear(GL_COLOR_BUFFER_BIT);
 
     // DRAW POSTPROCESS EFFECTS
-    fn_opengl_shader_enable(renderState->PostProcessShader);
+    fn_opengl_shader_enable(&renderState->PostProcessShader);
 
     glBindVertexArray(renderState->PostProcessQuad.vaoId);
 
@@ -486,17 +487,19 @@ FN_API FN_GAME_RUN_FRAME(RunFrame)
         const char* vertShader = "C:/dev/FarNorthEngine/data/shaders/fn_standard_vertex_shader.vert";
         const char* fragShader = "C:/dev/FarNorthEngine/data/shaders/fn_standard_fragment_shader.frag";
         fn_shader* shader = fn_memory_alloc_struct(&transientState->Assets.Arena, fn_shader);
-        *shader = fn_asset_shader_load(*memory->PlatformAPI, vertShader, fragShader);
-        transientState->Assets.Shaders[AssetId_Container] = shader;
+        fn_shader_data shaderData = fn_asset_shader_load(memory->PlatformAPI, vertShader, fragShader);
+        *shader = fn_renderer_shader_create(&shaderData);
+        transientState->Assets.Shaders[ShaderType_Standard] = shader;
 
         fn_mesh* mesh = fn_memory_alloc_struct(&transientState->Assets.Arena, fn_mesh);
-        *mesh = fn_asset_mesh_load(&transientState->Assets.Arena, "C:/dev/FarNorthEngine/data/models/cyborg.obj");
+        fn_mesh_data data = fn_asset_mesh_load(&transientState->Assets.Arena, "C:/dev/FarNorthEngine/data/models/cyborg.obj");
+        *mesh = fn_renderer_mesh_create(&data);
         transientState->Assets.Meshes[AssetId_Container] = mesh;
 
         fn_material* mat = fn_memory_alloc_struct(&transientState->Assets.Arena, fn_material);
-        mat->DiffuseMap = fn_asset_texture_load(*memory->PlatformAPI, "C:/dev/FarNorthEngine/data/textures/cyborg_diffuse.png", fn_texture_type::TextureType_Diffuse);
-        mat->SpecularMap = fn_asset_texture_load(*memory->PlatformAPI, "C:/dev/FarNorthEngine/data/textures/cyborg_specular.png", fn_texture_type::TextureType_Specular);
-        mat->NormalMap = fn_asset_texture_load(*memory->PlatformAPI, "C:/dev/FarNorthEngine/data/textures/cyborg_normal.png", fn_texture_type::TextureType_Normal);
+        mat->DiffuseMap = fn_renderer_texture_create("C:/dev/FarNorthEngine/data/textures/cyborg_diffuse.png", fn_texture_type::TextureType_Diffuse);
+        mat->SpecularMap = fn_renderer_texture_create("C:/dev/FarNorthEngine/data/textures/cyborg_specular.png", fn_texture_type::TextureType_Specular);
+        mat->NormalMap = fn_renderer_texture_create("C:/dev/FarNorthEngine/data/textures/cyborg_normal.png", fn_texture_type::TextureType_Normal);
         mat->Shininess = 16.0f;
         transientState->Assets.Materials[AssetId_Container] = mat;
 
@@ -512,7 +515,8 @@ FN_API FN_GAME_RUN_FRAME(RunFrame)
 
         const char* postprocessVertShader = "C:/dev/FarNorthEngine/data/shaders/fn_postprocess_vertex_shader.vert";
         const char* postprocessFragShader = "C:/dev/FarNorthEngine/data/shaders/fn_postprocess_fragment_shader.frag";
-        renderState->PostProcessShader = fn_asset_shader_load(*memory->PlatformAPI, postprocessVertShader, postprocessFragShader);
+        fn_shader_data postprocessShaderData = fn_asset_shader_load(memory->PlatformAPI, postprocessVertShader, postprocessFragShader);
+        renderState->PostProcessShader = fn_renderer_shader_create(&postprocessShaderData);
 
         renderState->Skybox = fn_opengl_mesh_create_cube();
 
@@ -530,19 +534,20 @@ FN_API FN_GAME_RUN_FRAME(RunFrame)
 
         const char* skyboxVertShader = "C:/dev/FarNorthEngine/data/shaders/fn_skybox_vertex_shader.vert";
         const char* skyboxFragShader = "C:/dev/FarNorthEngine/data/shaders/fn_skybox_fragment_shader.frag";
-        renderState->SkyboxShader = fn_asset_shader_load(*memory->PlatformAPI, skyboxVertShader, skyboxFragShader);
+        fn_shader_data skyboxShaderData = fn_asset_shader_load(memory->PlatformAPI, skyboxVertShader, skyboxFragShader);
+        renderState->SkyboxShader = fn_renderer_shader_create(&skyboxShaderData);
 
         transientState->RenderState = renderState;
 
-        fn_opengl_shader_enable(renderState->SkyboxShader);
+        fn_opengl_shader_enable(&renderState->SkyboxShader);
         fn_opengl_shader_load_int32(&renderState->SkyboxShader, "skyboxTexture", 0);
         fn_opengl_shader_disable();
 
-        fn_opengl_shader_enable(renderState->PostProcessShader);
+        fn_opengl_shader_enable(&renderState->PostProcessShader);
         fn_opengl_shader_load_int32(&renderState->PostProcessShader, "sceneTexture", 0);
         fn_opengl_shader_disable();
 
-        fn_opengl_shader_enable(*shader);
+        fn_opengl_shader_enable(shader);
         fn_opengl_shader_load_int32(shader, "material.diffuseMap", 0);
         fn_opengl_shader_load_int32(shader, "material.specularMap", 1);
         fn_opengl_shader_load_int32(shader, "material.normalMap", 2);

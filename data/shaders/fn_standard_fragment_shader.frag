@@ -53,7 +53,7 @@ void main()
     vec4 specularMap = texture(material.specularMap, fs_in.textureCoord);
 
     //air=1.00, Water=1.33, Ice=1.309, Glass=1.52, Diamond=2.42
-    float ratio = 1.00 / 2.42;
+    float ratio = 1.00 / 1.52;
     vec3 reflection = texture(skyboxTexture, refract(viewDirection, normal, ratio)).rgb;
 
     specularLight *= (specularMap.rgb + reflection);

@@ -17,6 +17,7 @@ struct fn_renderable
 {
     fn_transform Transform;
     game_asset_id AssetId;
+    fn_shader_type ShaderId;
 };
 
 struct fn_entity
